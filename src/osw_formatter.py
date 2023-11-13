@@ -1,6 +1,7 @@
 import os
 import uuid
 import logging
+import traceback
 import urllib.parse
 from datetime import datetime
 from .config import Settings
@@ -60,12 +61,11 @@ class OSWFomatter:
                                       prefix=tdei_record_id)
                 result = formatter.format()
                 formatter_result = ValidationResult()
-                if result.status and result.error is None and result.generated_files is not None:
+                if result and result.status and result.error is None and result.generated_files is not None:
                     upload_path = self.upload_to_azure(result.generated_files)
-                    print(upload_path)
                     formatter_result.is_valid = True
                     formatter_result.validation_message = 'OSW to OSM formatting successful!'
-                    self.send_status(result=formatter_result, upload_message=received_message, upload_url=None)
+                    self.send_status(result=formatter_result, upload_message=received_message, upload_url=upload_path)
                 else:
                     formatter_result.is_valid = False
                     formatter_result.validation_message = 'Could not format OSW to OSM'
@@ -115,3 +115,4 @@ class OSWFomatter:
         except Exception as e:
             logger.error(e)
         logger.info(f'Publishing message for : {upload_message.data.tdei_record_id}')
+

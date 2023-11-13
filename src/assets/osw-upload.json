@@ -63,7 +63,9 @@
       "osw_schema_version": "1.0.0"
     },
     "meta": {
-      "file_upload_path": "https://tdeisamplestorage.blob.core.windows.net/osw/test_upload/osw.zip"
+      "file_upload_path": "https://tdeisamplestorage.blob.core.windows.net/osw/test_upload/osw.zip",
+      "isValid": true,
+      "validationMessage": ""
     },
     "response": {
       "success": true,

@@ -1,10 +1,8 @@
 import os
 import shutil
 import logging
-import asyncio
 import traceback
 from pathlib import Path
-from typing import Union, Any
 from .config import Settings
 from osm_osw_reformatter import Formatter
 
@@ -41,10 +39,13 @@ class OSWFormat:
             except Exception as err:
                 traceback.print_exc()
                 logger.error(f' Error While Formatting File: {str(err)}')
+                return None
         else:
             logger.error(f' Failed to format because unknown file format')
+            return None
 
     def download_single_file(self, file_upload_path=None) -> str:
+
         file = self.storage_client.get_file_from_url(self.container_name, file_upload_path)
         try:
             if file.file_path:
@@ -67,4 +68,4 @@ class OSWFormat:
         else:
             folder = os.path.join(DOWNLOAD_FILE_PATH, path)
             logger.info(f' Removing Folder: {folder}')
-            shutil.rmtree(folder, ignore_errors=False)
+            shutil.rmtree(folder, ignore_errors=True)
