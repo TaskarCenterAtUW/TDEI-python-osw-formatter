@@ -130,7 +130,7 @@ Make sure you have set up the project properly before running the tests, see abo
    5. _NOTE :_ To run the `html` or `report` coverage, 3.i) command is mandatory
 
 #### How to run integration test cases
-1. `.env` file is required for Unit test cases.
+1. `.env` file is required for integration test cases.
 2. To run the integration test cases, run the below command
    1. `python test_integration.py`
    2. Above command will run all integration test cases and generate the html report, in `reports` folder at the root level.
