@@ -93,7 +93,7 @@ class OSWFomatter:
                 filename = f'{filename}/{project_group_id}'
             if record_id:
                 filename = f'{filename}/{record_id}'
-            filename = f'{filename}/xm/{base_filename}'
+            filename = f'{filename}/xml/{base_filename}'
             container = self.storage_client.get_container(container_name=self.container_name)
             file = container.create_file(filename)
             with open(file_path, 'rb') as data:
