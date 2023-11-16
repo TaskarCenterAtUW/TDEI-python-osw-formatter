@@ -62,7 +62,11 @@ class OSWFomatter:
                 result = formatter.format()
                 formatter_result = ValidationResult()
                 if result and result.status and result.error is None and result.generated_files is not None:
-                    upload_path = self.upload_to_azure(result.generated_files)
+                    upload_path = self.upload_to_azure(
+                        file_path=result.generated_files,
+                        project_group_id=received_message.data.tdei_project_group_id,
+                        record_id=received_message.data.tdei_record_id
+                    )
                     formatter_result.is_valid = True
                     formatter_result.validation_message = 'OSW to OSM formatting successful!'
                     self.send_status(result=formatter_result, upload_message=received_message, upload_url=upload_path)
@@ -79,12 +83,17 @@ class OSWFomatter:
             result.validation_message = f'Error occurred while formatting OSW request {e}'
             self.send_status(result=result, upload_message=received_message)
 
-    def upload_to_azure(self, file_path=None):
+    def upload_to_azure(self, file_path=None, project_group_id=None, record_id=None):
         try:
-            filename = os.path.basename(file_path)
+            base_filename = os.path.basename(file_path)
             now = datetime.now()
             year_month_str = now.strftime('%Y/%B').upper()
-            filename = f'{year_month_str}/{filename}'
+            filename = f'{year_month_str}'
+            if project_group_id:
+                filename = f'{filename}/{project_group_id}'
+            if record_id:
+                filename = f'{filename}/{record_id}'
+            filename = f'{filename}/{base_filename}'
             container = self.storage_client.get_container(container_name=self.container_name)
             file = container.create_file(filename)
             with open(file_path, 'rb') as data:
@@ -115,4 +124,3 @@ class OSWFomatter:
         except Exception as e:
             logger.error(e)
         logger.info(f'Publishing message for : {upload_message.data.tdei_record_id}')
-

@@ -76,7 +76,7 @@ class UploadData:
         self.meta = Meta(data=meta) if meta else {}
         self.response = Response(data=response) if response else {}
         self._tdei_record_id = data.get('tdei_record_id', '')
-        self._tdei_org_id = data.get('tdei_org_id', '')
+        self._tdei_project_group_id = data.get('tdei_project_group_id', '')
         self._user_id = data.get('user_id', '')
 
     @property
@@ -92,10 +92,10 @@ class UploadData:
     def tdei_record_id(self, value): self._tdei_record_id = value
 
     @property
-    def tdei_org_id(self): return self._tdei_org_id
+    def tdei_project_group_id(self): return self._tdei_project_group_id
 
-    @tdei_org_id.setter
-    def tdei_org_id(self, value): self._tdei_org_id = value
+    @tdei_project_group_id.setter
+    def tdei_project_group_id(self, value): self._tdei_project_group_id = value
 
     @property
     def user_id(self): return self._user_id

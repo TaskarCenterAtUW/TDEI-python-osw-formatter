@@ -55,6 +55,7 @@ class TestOSWFormatterIntegration(unittest.TestCase):
             self.fail('QUEUECONNECTION environment not set')
         formatter = OSWFomatter()
         self.test_data['tdei_record_id'] = str(uuid.uuid4())
+        self.test_data['tdei_project_group_id'] = str(uuid.uuid4())
         upload_topic = self.core.get_topic(topic_name=self.upload_topic_name)
         message = QueueMessage.data_from({'message': '', 'data': self.test_data})
         upload_topic.publish(data=message)
@@ -95,7 +96,13 @@ class TestOSWFormatterIntegration(unittest.TestCase):
         destination_file = f'{str(uuid.uuid4())}.test.xml'
         shutil.copy(source_file, f'{DOWNLOAD_FILE_PATH}/{destination_file}')
         formatter = OSWFomatter()
-        uploaded_path = formatter.upload_to_azure(file_path=f'{DOWNLOAD_FILE_PATH}/{destination_file}')
+        record_id = str(uuid.uuid4())
+        project_id = str(uuid.uuid4())
+        uploaded_path = formatter.upload_to_azure(
+            file_path=f'{DOWNLOAD_FILE_PATH}/{destination_file}',
+            project_group_id=project_id,
+            record_id=record_id
+        )
         self.assertEqual(os.path.basename(uploaded_path), destination_file)
 
     @patch.object(OSWFomatter, 'start_listening', new=MagicMock())
