@@ -24,11 +24,12 @@ The project is built on Python with FastAPI framework. All the regular nuances f
 - Connecting this to cloud will need the following in the `.env` file
 
 ```bash
-UPLOAD_TOPIC=xxxx
-UPLOAD_SUBSCRIPTION=xxxx
-VALIDATION_TOPIC=xxxx
-QUEUECONNECTION=xxxx
-STORAGECONNECTION=xxxx
+VALIDATION_TOPIC=xxx
+VALIDATION_SUBSCRIPTION=xxx
+FORMATTER_TOPIC=xxx
+QUEUECONNECTION=xxx
+STORAGECONNECTION=xxx
+CONTAINER_NAME=xxx
 ```
 
 The application connect with the `STORAGECONNECTION` string provided in `.env` file and validates downloaded zipfile using `python-osw-validation` package.
