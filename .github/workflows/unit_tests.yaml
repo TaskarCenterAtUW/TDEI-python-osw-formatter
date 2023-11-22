@@ -18,6 +18,8 @@ jobs:
 
       - name: Setup Virtual Environment
         run: |
+          sudo apt update 
+          sudo apt install gdal-bin libgdal-dev python3-gdal
           python3.10 -m venv .venv
           source .venv/bin/activate
 
@@ -26,10 +28,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple tdei-gtfs-csv-validator==0.0.31
-          sudo apt update 
-          sudo apt install gdal-bin libgdal-dev python3-gdal
 
-- name: Run Unit Test Cases
+      - name: Run Unit Test Cases
         run: python test_report.py
 
       #- name: Run Coverage Report
