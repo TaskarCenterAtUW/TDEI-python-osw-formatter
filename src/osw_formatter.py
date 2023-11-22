@@ -73,6 +73,7 @@ class OSWFomatter:
                 else:
                     formatter_result.is_valid = False
                     formatter_result.validation_message = 'Could not format OSW to OSM'
+                    logger.error(f'error status : {result.status}, error details : {result.error}')
                     self.send_status(result=formatter_result, upload_message=received_message)
             else:
                 raise Exception('File entity not found')
