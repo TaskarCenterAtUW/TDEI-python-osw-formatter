@@ -97,7 +97,7 @@ class TestRequest(unittest.TestCase):
 
     def test_tdei_project_group_id(self):
         self.assertEqual(self.request.tdei_project_group_id, '0b41ebc5-350c-42d3-90af-3af4ad3628fb')
-        self.request.tdei_project_group_id = 'Test project ID'
+        self.request.tdei_project_group_id = 'Test project group ID'
         self.assertEqual(self.request.tdei_project_group_id, 'Test project group ID')
 
     def test_collected_by(self):
