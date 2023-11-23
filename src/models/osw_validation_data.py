@@ -1,4 +1,5 @@
 # data part of it
+from .queue_message_content import Request, Response, Meta
 
 class OSWValidationData:
     def __init__(self, data: dict):
