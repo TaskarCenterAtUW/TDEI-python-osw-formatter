@@ -1,0 +1,13 @@
+{
+    "message": "OSW Formatter on demand input",
+    "messageId": "74b534ba89d111eeb366ce63",
+    "messageType": "osw-formatter-request",
+    "publishedDate": "2023-11-23 07:25:19.426748",
+    "data":{
+        "sourceUrl":"",
+        "jobId":"42",
+        "source":"osw",
+        "target":"osm"
+    }
+
+}
