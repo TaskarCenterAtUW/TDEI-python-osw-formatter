@@ -17,6 +17,9 @@ logger.setLevel(logging.INFO)
 
 class OSWFormat:
     def __init__(self, file_path=None, storage_client=None, prefix=None):
+        is_exists = os.path.exists(DOWNLOAD_FILE_PATH)
+        if not is_exists:
+            os.makedirs(DOWNLOAD_FILE_PATH)
         settings = Settings()
         self.container_name = settings.event_bus.container_name
         self.storage_client = storage_client

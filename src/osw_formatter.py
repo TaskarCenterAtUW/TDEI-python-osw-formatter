@@ -2,6 +2,7 @@ import os
 import uuid
 import logging
 import traceback
+import threading
 import urllib.parse
 from datetime import datetime
 from .config import Settings
@@ -36,7 +37,9 @@ class OSWFomatter:
             if message is not None:
                 queue_message = QueueMessage.to_dict(message)
                 upload_message = Upload.data_from(queue_message)
-                self.format(upload_message)
+                # Create a thread to process the message asynchronously
+                process_thread = threading.Thread(target=self.format, args=[upload_message])
+                process_thread.start()
 
         self.listening_topic.subscribe(subscription=self.subscription_name, callback=process)
 
