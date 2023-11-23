@@ -5,10 +5,10 @@ import traceback
 import threading
 import urllib.parse
 from datetime import datetime
-from .config import Settings
+from src.config import Settings
 from python_ms_core import Core
-from .formatter import OSWFormat
-from .models.queue_message_content import Upload, ValidationResult
+from src.osw_format import OSWFormat
+from src.models import OSWValidationMessage, ValidationResult
 from python_ms_core.core.queue.models.queue_message import QueueMessage
 
 logging.basicConfig()
@@ -16,15 +16,15 @@ logger = logging.getLogger('OSW_FORMATTER')
 logger.setLevel(logging.INFO)
 
 
-class OSWFomatter:
+class OSWFomatterService:
     _settings = Settings()
 
     def __init__(self):
         core = Core()
 
-        listening_topic_name = self._settings.event_bus.upload_topic or ''
-        publishing_topic_name = self._settings.event_bus.validation_topic or ''
-        self.subscription_name = self._settings.event_bus.upload_subscription or ''
+        listening_topic_name = self._settings.event_bus.validation_topic or ''
+        publishing_topic_name = self._settings.event_bus.formatter_topic or ''
+        self.subscription_name = self._settings.event_bus.validation_subscription or ''
         self.listening_topic = core.get_topic(topic_name=listening_topic_name)
         self.publishing_topic = core.get_topic(topic_name=publishing_topic_name)
         self.logger = core.get_logger()
@@ -36,14 +36,14 @@ class OSWFomatter:
         def process(message) -> None:
             if message is not None:
                 queue_message = QueueMessage.to_dict(message)
-                upload_message = Upload.data_from(queue_message)
+                upload_message = OSWValidationMessage.data_from(queue_message)
                 # Create a thread to process the message asynchronously
                 process_thread = threading.Thread(target=self.format, args=[upload_message])
                 process_thread.start()
 
         self.listening_topic.subscribe(subscription=self.subscription_name, callback=process)
 
-    def format(self, received_message: Upload):
+    def format(self, received_message: OSWValidationMessage):
         tdei_record_id: str = ''
         try:
             tdei_record_id = received_message.data.tdei_record_id
@@ -107,7 +107,7 @@ class OSWFomatter:
             logger.error(e)
             return None
 
-    def send_status(self, result: ValidationResult, upload_message: Upload, upload_url=None):
+    def send_status(self, result: ValidationResult, upload_message: OSWValidationMessage, upload_url=None):
         upload_message.data.meta.isValid = result.is_valid
         upload_message.data.meta.validationMessage = result.validation_message
         upload_message.data.stage = 'osw-formatter'

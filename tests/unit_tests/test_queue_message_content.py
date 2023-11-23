@@ -2,7 +2,7 @@ import os
 import json
 import unittest
 from unittest.mock import MagicMock
-from src.models.queue_message_content import ValidationResult, Upload, UploadData, Request, Meta, Response, to_json
+from src.models import ValidationResult, Upload, UploadData, Request, Meta, Response, to_json
 
 current_dir = os.path.dirname(os.path.abspath(os.path.join(__file__, '../')))
 parent_dir = os.path.dirname(current_dir)

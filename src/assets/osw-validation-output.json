@@ -1,0 +1,67 @@
+{
+    "message": "OSW validation output",
+    "messageId": "74b534ba89d111eeb366ce63",
+    "messageType": "osw-validation",
+    "publishedDate": "2023-11-23 07:25:19.426748",
+    "data": {
+        "stage": "osw-validation",
+        "request": {
+            "tdei_project_group_id": "c552d5d1-0719-4647-b86d-6ae9b25327b7",
+            "collected_by": "Collector name",
+            "collection_date": "2023-03-06T02:22:45.374Z",
+            "collection_method": "manual",
+            "publication_date": "2023-06-11T04:22:42.493Z",
+            "data_source": "InHouse",
+            "polygon": {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [
+                                [
+                                    [
+                                        72.122965,
+                                        13.827424
+                                    ],
+                                    [
+                                        70.309085,
+                                        13.815657
+                                    ],
+                                    [
+                                        78.657965,
+                                        13.462291
+                                    ],
+                                    [
+                                        76.415757,
+                                        14.678926
+                                    ],
+                                    [
+                                        72.122965,
+                                        13.827424
+                                    ]
+                                ]
+                            ]
+                        },
+                        "properties": {}
+                    }
+                ]
+            },
+            "osw_schema_version": "v0.1"
+        },
+        "meta": {
+            "file_upload_path": "https://tdeisamplestorage.blob.core.windows.net/osw/2023/11/c552d5d1-0719-4647-b86d-6ae9b25327b7/aff14a0d29ab4acbaef639063462e85b/naresh-som-2.zip",
+            "isValid": true,
+            "validationMessage": "",
+            "validationTime": 90
+        },
+        "response": {
+            "success": true,
+            "message": ""
+        },
+        "tdei_record_id": "aff14a0d29ab4acbaef639063462e85b",
+        "tdei_project_group_id": "c552d5d1-0719-4647-b86d-6ae9b25327b7",
+        "user_id": "c59d29b6-a063-4249-943f-d320d15ac9ab"
+    }
+}
