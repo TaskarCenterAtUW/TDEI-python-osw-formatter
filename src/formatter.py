@@ -37,7 +37,7 @@ class OSWFormat:
                 logger.info(f' Downloaded file path: {downloaded_file_path}')
                 f = Formatter(workdir=DOWNLOAD_FILE_PATH, file_path=downloaded_file_path, prefix=self.prefix)
                 formatter = f.osw2osm()
-                OSWFormat.clean_up(downloaded_file_path)
+                # OSWFormat.clean_up(downloaded_file_path)
                 return formatter
             except Exception as err:
                 traceback.print_exc()
