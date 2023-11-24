@@ -146,13 +146,7 @@ class OSWFomatterService:
             if record_id:
                 filename = f"{filename}/{record_id}"
             filename = f"{filename}/xml/{base_filename}"
-            container = self.storage_client.get_container(
-                container_name=self.container_name
-            )
-            file = container.create_file(filename)
-            with open(file_path, "rb") as data:
-                file.upload(data)
-            return file.get_remote_url()
+            self.upload_to_azure(filename,file_path)
         except Exception as e:
             logger.error(e)
             return None
@@ -192,20 +186,55 @@ class OSWFomatterService:
         logger.info(request.sourceUrl)
         logger.info(request.source)
         logger.info(request.target)
-        self.sendOnDemandResponse(request, {})
+        # Format the file
+        formatter = OSWFormat(
+                    file_path=request.sourceUrl,
+                    storage_client=self.storage_client,
+                    prefix=request.jobId
+                )
+        result = formatter.format()
+        formatter_result = ValidationResult()
+        # Create remote path
+        if (
+                    result
+                    and result.status
+                    and result.error is None
+                    and result.generated_files is not None
+                ):
+                logger.info('Formatting complete')
+                source_file_name = os.path.basename(request.sourceUrl)
+                source_file_name_only = os.path.splitext(source_file_name)[0]
+                target_directory =  f'jobs/{request.jobId}/{request.target}/'
+                target_extension = os.path.splitext(result.generated_files)[1]
+                target_file_name = source_file_name_only+target_extension
+                target_file_remote_path = os.path.join(target_directory,target_file_name)
+                logger.info('File to be uploaded to ')
+                logger.info(target_file_remote_path)
+                new_file_remote_url = self.upload_to_azure(target_file_remote_path,result.generated_files)
 
-    def sendOnDemandResponse(self, request: OSWOnDemandRequest, response: any):
-        logger.info(f"Sending response for {request.jobId}")
+        response = OSWOnDemandResponse(request.sourceUrl,request.jobId,'completed',new_file_remote_url,'Ok')
 
-        message_data = OSWOnDemandResponse(
-            request.sourceUrl, request.jobId, "completed", "", "demo message"
-        )
+        self.sendOnDemandResponse(response)
+
+    def sendOnDemandResponse(self, response: OSWOnDemandResponse):
+        logger.info(f"Sending response for {response.jobId}")
 
         data = QueueMessage.data_from({
             'messageId': uuid.uuid1().hex[0:24],
             'message': 'OSW formatter output',
             'messageType': 'osw-formatter-response',
-            'data': asdict(message_data),
+            'data': asdict(response),
             'publishedDate': str(datetime.now())
         })
         self.publishing_topic.publish(data=data)
+        logger.info(f'Finished sending response for {response.jobId}')
+    
+    def upload_to_azure(self,remotePath:str, localUrl:str):
+        container = self.storage_client.get_container(
+                container_name=self.container_name
+            )
+        file = container.create_file(remotePath)
+        with open(localUrl, "rb") as data:
+            file.upload(data)
+        return file.get_remote_url()
+        

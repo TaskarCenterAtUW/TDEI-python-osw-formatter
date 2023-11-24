@@ -12,20 +12,23 @@ logger.setLevel(logging.INFO)
 
 class OSWFormat:
     def __init__(self, file_path=None, storage_client=None, prefix=None):
-        is_exists = os.path.exists(DOWNLOAD_FILE_PATH)
-        if not is_exists:
-            os.makedirs(DOWNLOAD_FILE_PATH)
         settings = Settings()
+        self.download_dir = settings.get_download_directory()
+        is_exists = os.path.exists(self.download_dir)
+        if not is_exists:
+            os.makedirs(self.download_dir)
+        
         self.container_name = settings.event_bus.container_name
         self.storage_client = storage_client
         self.file_path = file_path
         self.file_relative_path = file_path.split('/')[-1]
         self.client = self.storage_client.get_container(container_name=self.container_name)
         self.prefix = prefix
-        self.download_dir = settings.get_download_directory()
+        
 
     def format(self):
         root, ext = os.path.splitext(self.file_relative_path)
+        print(self.file_path)
         if ext and ext.lower() == '.zip':
             downloaded_file_path = self.download_single_file(self.file_path)
 
