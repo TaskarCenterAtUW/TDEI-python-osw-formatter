@@ -211,9 +211,12 @@ class OSWFomatterService:
                 logger.info('File to be uploaded to ')
                 logger.info(target_file_remote_path)
                 new_file_remote_url = self.upload_to_azure(target_file_remote_path,result.generated_files)
+                response = OSWOnDemandResponse(request.sourceUrl,request.jobId,'completed',new_file_remote_url,'Ok')
 
-        response = OSWOnDemandResponse(request.sourceUrl,request.jobId,'completed',new_file_remote_url,'Ok')
-
+        else :
+            new_file_remote_url = ''
+            response = OSWOnDemandResponse(request.sourceUrl,request.jobId,'failed',new_file_remote_url,result.error)
+        
         self.sendOnDemandResponse(response)
 
     def sendOnDemandResponse(self, response: OSWOnDemandResponse):
