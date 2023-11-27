@@ -2,9 +2,10 @@
 
 from dataclasses import dataclass
 
+
 @dataclass
 class OSWOnDemandRequest:
-    sourceUrl:str
-    jobId:str
-    source:str
-    target:str
+    sourceUrl: str
+    jobId: str
+    source: str
+    target: str

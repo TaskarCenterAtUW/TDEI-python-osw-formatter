@@ -1,6 +1,7 @@
 # data part of it
 from .queue_message_content import Request, Response, Meta
 
+
 class OSWValidationData:
     def __init__(self, data: dict):
         polygon = data.get('polygon', None)
@@ -45,6 +46,7 @@ class OSWValidationData:
         self.meta = to_json(self.meta.__dict__)
         self.response = to_json(self.response.__dict__)
         return to_json(self.__dict__)
+
 
 def remove_underscore(string: str):
     return string if not string.startswith('_') else string[1:]

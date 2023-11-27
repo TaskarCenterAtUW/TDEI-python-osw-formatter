@@ -10,6 +10,7 @@ logging.basicConfig()
 logger = logging.getLogger('osw-formatter')
 logger.setLevel(logging.INFO)
 
+
 class OSWFormat:
     def __init__(self, file_path=None, storage_client=None, prefix=None):
         settings = Settings()
@@ -17,14 +18,13 @@ class OSWFormat:
         is_exists = os.path.exists(self.download_dir)
         if not is_exists:
             os.makedirs(self.download_dir)
-        
+
         self.container_name = settings.event_bus.container_name
         self.storage_client = storage_client
         self.file_path = file_path
         self.file_relative_path = file_path.split('/')[-1]
         self.client = self.storage_client.get_container(container_name=self.container_name)
         self.prefix = prefix
-        
 
     def format(self):
         root, ext = os.path.splitext(self.file_relative_path)
@@ -36,7 +36,7 @@ class OSWFormat:
                 logger.info(f' Downloaded file path: {downloaded_file_path}')
                 formatter = Formatter(workdir=self.download_dir, file_path=downloaded_file_path, prefix=self.prefix)
                 formatter_response = formatter.osw2osm()
-                OSWFormat.clean_up(downloaded_file_path)
+                OSWFormat.clean_up(downloaded_file_path, self.download_dir)
                 return formatter_response
             except Exception as err:
                 traceback.print_exc()
@@ -63,11 +63,11 @@ class OSWFormat:
             logger.error(e)
 
     @staticmethod
-    def clean_up(path):
+    def clean_up(path, download_dir=None):
         if os.path.isfile(path):
             logger.info(f' Removing File: {path}')
             os.remove(path)
         else:
-            folder = os.path.join(self.download_dir, path)
+            folder = os.path.join(download_dir, path)
             logger.info(f' Removing Folder: {folder}')
             shutil.rmtree(folder, ignore_errors=True)

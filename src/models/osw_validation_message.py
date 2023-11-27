@@ -1,6 +1,9 @@
 ## Holds the message from osw_validation
 ## Sample found in osw-validation-output.json
+import json
 from .osw_validation_data import OSWValidationData
+
+
 class OSWValidationMessage:
 
     def __init__(self, data: dict):
@@ -57,6 +60,7 @@ class OSWValidationMessage:
             except Exception as e:
                 error = str(e).replace('Upload', 'Invalid parameter,')
                 raise TypeError(error)
+
 
 def remove_underscore(string: str):
     return string if not string.startswith('_') else string[1:]

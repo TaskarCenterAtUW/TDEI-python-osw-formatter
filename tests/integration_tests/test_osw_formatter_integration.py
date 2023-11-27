@@ -18,8 +18,8 @@ os.environ['VALIDATION_SUBSCRIPTION'] = 'upload-validation-processor'
 os.environ['FORMATTER_TOPIC'] = 'temp-validation'
 
 from python_ms_core import Core
-from src.osw_formatter import OSWFomatter
-from src.models.queue_message_content import Upload
+from src.service.osw_formatter_service import OSWFomatterService
+from src.models.osw_validation_message import OSWValidationMessage
 from python_ms_core.core.queue.models.queue_message import QueueMessage
 
 TEST_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -49,11 +49,11 @@ class TestOSWFormatterIntegration(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @patch.object(OSWFomatter, 'start_listening', new=MagicMock())
+    @patch.object(OSWFomatterService, 'start_listening', new=MagicMock())
     def test_subscribe_to_upload_topic(self):
         if os.environ['QUEUECONNECTION'] is None:
             self.fail('QUEUECONNECTION environment not set')
-        formatter = OSWFomatter()
+        formatter = OSWFomatterService()
         self.test_data['tdei_record_id'] = str(uuid.uuid4())
         self.test_data['tdei_project_group_id'] = str(uuid.uuid4())
         upload_topic = self.core.get_topic(topic_name=self.upload_topic_name)
@@ -62,11 +62,11 @@ class TestOSWFormatterIntegration(unittest.TestCase):
         time.sleep(0.5)  # Wait to get the callback
         formatter.start_listening.assert_called_once()
 
-    @patch.object(OSWFomatter, 'start_listening', new=MagicMock())
+    @patch.object(OSWFomatterService, 'start_listening', new=MagicMock())
     async def test_servicebus_receive(self):
         if os.environ['QUEUECONNECTION'] is None:
             self.fail('QUEUECONNECTION environment not set')
-        formatter = OSWFomatter()
+        formatter = OSWFomatterService()
         subscribe_function = MagicMock()
         self.test_data['tdei_record_id'] = str(uuid.uuid4())
         message = QueueMessage.data_from({'message': '', 'data': self.test_data})
@@ -87,7 +87,7 @@ class TestOSWFormatterIntegration(unittest.TestCase):
         content = file.get_stream()
         self.assertTrue(content)
 
-    @patch.object(OSWFomatter, 'start_listening', new=MagicMock())
+    @patch.object(OSWFomatterService, 'start_listening', new=MagicMock())
     def test_upload_to_azure(self):
         if os.environ['QUEUECONNECTION'] is None:
             self.fail('QUEUECONNECTION environment not set')
@@ -95,7 +95,7 @@ class TestOSWFormatterIntegration(unittest.TestCase):
         source_file = f'{SAVED_FILE_PATH}/c8c76e89f30944d2b2abd2491bd95337.graph.osm.xml'
         destination_file = f'{str(uuid.uuid4())}.test.xml'
         shutil.copy(source_file, f'{DOWNLOAD_FILE_PATH}/{destination_file}')
-        formatter = OSWFomatter()
+        formatter = OSWFomatterService()
         record_id = str(uuid.uuid4())
         project_id = str(uuid.uuid4())
         uploaded_path = formatter.upload_to_azure(
@@ -105,17 +105,17 @@ class TestOSWFormatterIntegration(unittest.TestCase):
         )
         self.assertEqual(os.path.basename(uploaded_path), destination_file)
 
-    @patch.object(OSWFomatter, 'start_listening', new=MagicMock())
+    @patch.object(OSWFomatterService, 'start_listening', new=MagicMock())
     def test_format(self):
         if os.environ['QUEUECONNECTION'] is None:
             self.fail('QUEUECONNECTION environment not set')
 
-        formatter = OSWFomatter()
+        formatter = OSWFomatterService()
         record_id = str(uuid.uuid4())
         self.test_data['tdei_record_id'] = record_id
         message = QueueMessage.data_from({'message': '', 'data': self.test_data})
         queue_message = QueueMessage.to_dict(message)
-        upload_message = Upload.data_from(queue_message)
+        upload_message = OSWValidationMessage.data_from(queue_message)
         formatter.format(received_message=upload_message)
         self.assertTrue(os.path.isfile(f'{DOWNLOAD_FILE_PATH}/{record_id}.graph.osm.xml'))
 
