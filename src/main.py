@@ -2,8 +2,8 @@ import os
 import psutil
 from fastapi import FastAPI, APIRouter, Depends, status
 from functools import lru_cache
-from .config import Settings
-from .osw_formatter import OSWFomatter
+from src.config import Settings
+from src.service.osw_formatter_service import OSWFomatterService
 
 app = FastAPI()
 
@@ -18,8 +18,17 @@ def get_settings():
 @app.on_event('startup')
 async def startup_event(settings: Settings = Depends(get_settings)) -> None:
     try:
-        OSWFomatter()
+        print('<><> DL Directory <><>')
+        set2 = Settings()
+        print(set2.get_download_directory())
+        
+        dl_directory = set2.get_download_directory()
+        if not os.path.exists(dl_directory):
+            os.makedirs(dl_directory)
+        OSWFomatterService()
+        
     except Exception as e:
+        print(e)
         print('\n\n\x1b[31m Application startup failed due to missing or invalid .env file \x1b[0m')
         print('\x1b[31m Please provide the valid .env file and .env file should contains following parameters\x1b[0m')
         print()

@@ -1,0 +1,13 @@
+{
+    "message": "OSW Formatter on demand input",
+    "messageId": "74b534ba89d111eeb366ce63",
+    "messageType": "osw-formatter-request",
+    "publishedDate": "2023-11-23 07:25:19.426748",
+    "data":{
+        "sourceUrl":"https://tdeisamplestorage.blob.core.windows.net/osw/2023/11/c552d5d1-0719-4647-b86d-6ae9b25327b7/aff14a0d29ab4acbaef639063462e85b/naresh-som-2.zip",
+        "jobId":"42",
+        "source":"osw",
+        "target":"osm"
+    }
+
+}

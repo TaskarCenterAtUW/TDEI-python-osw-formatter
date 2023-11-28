@@ -1,8 +1,8 @@
 import os
 import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-from src.formatter import OSWFormat
+from unittest.mock import patch, MagicMock, Mock
+from src.osw_format import OSWFormat
 
 DOWNLOAD_FILE_PATH = f'{Path.cwd()}/downloads'
 SAVED_FILE_PATH = f'{Path.cwd()}/tests/unit_tests/test_files'
@@ -15,6 +15,7 @@ class TestOSWFormat(unittest.TestCase):
 
         with patch.object(OSWFormat, '__init__', return_value=None):
             self.formatter = OSWFormat(file_path=file_path, storage_client=MagicMock(), prefix='test')
+            self.formatter.download_dir = DOWNLOAD_FILE_PATH
             self.formatter.file_path = file_path
             self.formatter.file_relative_path = f'{SAVED_FILE_PATH}/osw.zip'
             self.formatter.container_name = None
@@ -31,6 +32,7 @@ class TestOSWFormat(unittest.TestCase):
     def test_format_with_valid_file(self, mock_clean_up):
         mock_clean_up.return_value = None
         result = self.formatter.format()
+        print(result)
         self.assertTrue(result.status)
 
     @patch.object(OSWFormat, 'clean_up')
@@ -65,13 +67,14 @@ class TestOSWFormatDownload(unittest.TestCase):
             self.formatter = OSWFormat(file_path=file_path, storage_client=MagicMock(), prefix='test')
             self.formatter.file_path = file_path
             self.formatter.file_relative_path = 'osw.zip'
+            self.formatter.download_dir = DOWNLOAD_FILE_PATH
             self.formatter.container_name = None
             mock_download_single_file.return_value = file_path
 
     def tearDown(self):
         pass
 
-    def test_download_single_file(self):
+    def test_download_single_file_success(self):
         # Arrange
         file_upload_path = DOWNLOAD_FILE_PATH
         self.formatter.storage_client = MagicMock()
@@ -82,35 +85,50 @@ class TestOSWFormatDownload(unittest.TestCase):
         self.formatter.storage_client.get_file_from_url.return_value = file
 
         # Act
-        downloaded_file_path = self.formatter.download_single_file(file_upload_path=file_upload_path)
+        result = self.formatter.download_single_file(file_upload_path=file_upload_path)
+
+        expected_file_path = f'{self.formatter.download_dir}/text_file.txt'
+        file.get_stream.assert_called_once()
+        # Assert
+        with open(expected_file_path, 'rb') as file:
+            self.assertEqual(file.read(), b'file_content')
+        self.assertEqual(result, expected_file_path)
+
+    def test_download_single_file_file_not_found(self):
+        # Arrange
+        mock_file = Mock()
+        mock_file.file_path = None
+
+        self.formatter.storage_client = MagicMock()
+        self.formatter.storage_client.get_file_from_url = MagicMock()
+        self.formatter.storage_client.get_file_from_url.return_value = mock_file
+
+        result = self.formatter.download_single_file(file_upload_path='nonexistent/file/path.zip')
 
         # Assert
-        self.formatter.storage_client.get_file_from_url.assert_called_once_with(self.formatter.container_name,
-                                                                                file_upload_path)
-        file.get_stream.assert_called_once()
-        with open(downloaded_file_path, 'rb') as f:
-            content = f.read()
-        self.assertEqual(content, b'file_content')
+        self.assertIsNone(result)
+        mock_file.get_stream.assert_not_called()
 
 
 class TesOSWFormatCleanUp(unittest.TestCase):
+
     def test_clean_up_file_exists(self):
-        file_path = f'{DOWNLOAD_FILE_PATH}/file1.txt'
+        filename = 'file1.txt'
+        file_path = f'{DOWNLOAD_FILE_PATH}/{filename}'
         with open(file_path, 'w') as file:
             file.write('Test file content')
-
         OSWFormat.clean_up(file_path)
         self.assertFalse(os.path.exists(file_path))
 
     def test_clean_up_folder_exists(self):
         folder_path = f'{DOWNLOAD_FILE_PATH}/test'
         os.makedirs(folder_path)
-        OSWFormat.clean_up(folder_path)
+        OSWFormat.clean_up('test', DOWNLOAD_FILE_PATH)
         self.assertFalse(os.path.exists(folder_path))
 
     def test_clean_up_not_exists(self):
         non_existent_path = 'nonexistent/file.txt'
-        OSWFormat.clean_up(non_existent_path)
+        OSWFormat.clean_up(non_existent_path, DOWNLOAD_FILE_PATH)
         self.assertFalse(os.path.exists(non_existent_path))
 
 

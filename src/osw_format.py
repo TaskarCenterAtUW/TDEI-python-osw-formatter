@@ -6,21 +6,19 @@ from pathlib import Path
 from .config import Settings
 from osm_osw_reformatter import Formatter
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-# Path used for download file generation.
-DOWNLOAD_FILE_PATH = f'{Path.cwd()}/downloads'
-
 logging.basicConfig()
-logger = logging.getLogger('FORMAT')
+logger = logging.getLogger('osw-formatter')
 logger.setLevel(logging.INFO)
 
 
 class OSWFormat:
     def __init__(self, file_path=None, storage_client=None, prefix=None):
-        is_exists = os.path.exists(DOWNLOAD_FILE_PATH)
-        if not is_exists:
-            os.makedirs(DOWNLOAD_FILE_PATH)
         settings = Settings()
+        self.download_dir = settings.get_download_directory()
+        is_exists = os.path.exists(self.download_dir)
+        if not is_exists:
+            os.makedirs(self.download_dir)
+
         self.container_name = settings.event_bus.container_name
         self.storage_client = storage_client
         self.file_path = file_path
@@ -30,15 +28,16 @@ class OSWFormat:
 
     def format(self):
         root, ext = os.path.splitext(self.file_relative_path)
+        print(self.file_path)
         if ext and ext.lower() == '.zip':
             downloaded_file_path = self.download_single_file(self.file_path)
 
             try:
                 logger.info(f' Downloaded file path: {downloaded_file_path}')
-                f = Formatter(workdir=DOWNLOAD_FILE_PATH, file_path=downloaded_file_path, prefix=self.prefix)
-                formatter = f.osw2osm()
-                OSWFormat.clean_up(downloaded_file_path)
-                return formatter
+                formatter = Formatter(workdir=self.download_dir, file_path=downloaded_file_path, prefix=self.prefix)
+                formatter_response = formatter.osw2osm()
+                OSWFormat.clean_up(downloaded_file_path, self.download_dir)
+                return formatter_response
             except Exception as err:
                 traceback.print_exc()
                 logger.error(f' Error While Formatting File: {str(err)}')
@@ -53,10 +52,10 @@ class OSWFormat:
         try:
             if file.file_path:
                 file_path = os.path.basename(file.file_path)
-                with open(f'{DOWNLOAD_FILE_PATH}/{file_path}', 'wb') as blob:
+                with open(f'{self.download_dir}/{file_path}', 'wb') as blob:
                     blob.write(file.get_stream())
-                logger.info(f' File downloaded to location: {DOWNLOAD_FILE_PATH}/{file_path}')
-                return f'{DOWNLOAD_FILE_PATH}/{file_path}'
+                logger.info(f' File downloaded to location: {self.download_dir}/{file_path}')
+                return f'{self.download_dir}/{file_path}'
             else:
                 logger.info(' File not found!')
         except Exception as e:
@@ -64,11 +63,11 @@ class OSWFormat:
             logger.error(e)
 
     @staticmethod
-    def clean_up(path):
+    def clean_up(path, download_dir=None):
         if os.path.isfile(path):
             logger.info(f' Removing File: {path}')
             os.remove(path)
         else:
-            folder = os.path.join(DOWNLOAD_FILE_PATH, path)
+            folder = os.path.join(download_dir, path)
             logger.info(f' Removing Folder: {folder}')
             shutil.rmtree(folder, ignore_errors=True)
