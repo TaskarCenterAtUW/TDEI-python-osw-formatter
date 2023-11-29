@@ -157,8 +157,8 @@ class OSWFomatterService:
         data = QueueMessage.data_from(
             {
                 "messageId": uuid.uuid1().hex[0:24],
-                "message": upload_message.message or "OSW validation output",
-                "messageType": "osw-validation",
+                "message": upload_message.message or "OSW format output",
+                "messageType": "osw-format-result",
                 "data": upload_message.data.to_json(),
                 "publishedDate": str(datetime.now()),
             }
