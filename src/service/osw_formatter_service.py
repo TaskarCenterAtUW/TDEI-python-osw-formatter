@@ -4,6 +4,7 @@ import logging
 import traceback
 import threading
 import urllib.parse
+from pathlib import Path
 from datetime import datetime
 from src.config import Settings
 from python_ms_core import Core
@@ -27,7 +28,6 @@ class OSWFomatterService:
 
     def __init__(self):
         core = Core()
-
         listening_topic_name = self._settings.event_bus.validation_topic or ""
         publishing_topic_name = self._settings.event_bus.formatter_topic or ""
         self.subscription_name = self._settings.event_bus.validation_subscription or ""
@@ -37,6 +37,10 @@ class OSWFomatterService:
         self.storage_client = core.get_storage_client()
         self.container_name = self._settings.event_bus.container_name
         self.start_listening()
+        self.download_dir = self._settings.get_download_directory()
+        is_exists = os.path.exists(self.download_dir)
+        if not is_exists:
+            os.makedirs(self.download_dir)
 
     def start_listening(self):
         def process(message) -> None:
@@ -69,8 +73,9 @@ class OSWFomatterService:
         tdei_record_id: str = ""
         try:
             tdei_record_id = received_message.data.tdei_record_id
+
             logger.info(
-                f"Received message for: {tdei_record_id} Message received for OSW format !"
+                f"Received message for: {tdei_record_id} Message received for formatting !"
             )
             if received_message.data.meta.isValid is False:
                 error_msg = "Received failed workflow request"
@@ -94,12 +99,16 @@ class OSWFomatterService:
                 result = formatter.format()
                 formatter_result = ValidationResult()
                 if result and result.status and result.error is None and result.generated_files is not None:
-                    upload_path = self.upload_to_azure(file_path=result.generated_files,
+                    if isinstance(result.generated_files, list):
+                        converted_file = formatter.create_zip(result.generated_files)
+                    else:
+                        converted_file = result.generated_files
+                    upload_path = self.upload_to_azure(file_path=converted_file,
                                                        project_group_id=received_message.data.tdei_project_group_id,
                                                        record_id=received_message.data.tdei_record_id)
                     formatter_result.is_valid = True
                     formatter_result.validation_message = (
-                        "OSW to OSM formatting successful!"
+                        "Formatting Successful!"
                     )
                     self.send_status(
                         result=formatter_result,
@@ -108,7 +117,7 @@ class OSWFomatterService:
                     )
                 else:
                     formatter_result.is_valid = False
-                    formatter_result.validation_message = "Could not format OSW to OSM"
+                    formatter_result.validation_message = "Could not format OSW to OSM or OSM to OSW"
                     logger.error(
                         f"error status : {result.status}, error details : {result.error}"
                     )
@@ -132,6 +141,7 @@ class OSWFomatterService:
     def upload_to_azure(self, file_path=None, project_group_id=None, record_id=None):
         try:
             base_filename = os.path.basename(file_path)
+            file_extension = Path(file_path).suffix
             now = datetime.now()
             year_month_str = now.strftime("%Y/%B").upper()
             filename = f"{year_month_str}"
@@ -139,7 +149,10 @@ class OSWFomatterService:
                 filename = f"{filename}/{project_group_id}"
             if record_id:
                 filename = f"{filename}/{record_id}"
-            filename = f"{filename}/xml/{base_filename}"
+            if file_extension == '.zip':
+                filename = f'{filename}/xml/{base_filename}'
+            elif file_extension == '.pbf':
+                filename = f'{filename}/pbf/{base_filename}'
             return self.upload_to_azure_on_demand(remote_path=filename, local_url=file_path)
         except Exception as e:
             logger.error(e)

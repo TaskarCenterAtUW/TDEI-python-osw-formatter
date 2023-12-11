@@ -32,7 +32,6 @@ class TestOSWFormat(unittest.TestCase):
     def test_format_with_valid_file(self, mock_clean_up):
         mock_clean_up.return_value = None
         result = self.formatter.format()
-        print(result)
         self.assertTrue(result.status)
 
     @patch.object(OSWFormat, 'clean_up')
@@ -56,6 +55,72 @@ class TestOSWFormat(unittest.TestCase):
         file_path = f'{SAVED_FILE_PATH}/osw.zip'
         downloaded_file_path = self.formatter.download_single_file(file_upload_path=file_path)
         self.assertEqual(downloaded_file_path, file_path)
+
+
+class TestOSMFormat(unittest.TestCase):
+    @patch.object(OSWFormat, 'download_single_file')
+    def setUp(self, mock_download_single_file):
+        file_path = f'{SAVED_FILE_PATH}/wa.microsoft.osm.pbf'
+
+        with patch.object(OSWFormat, '__init__', return_value=None):
+            self.formatter = OSWFormat(file_path=file_path, storage_client=MagicMock(), prefix='test')
+            self.formatter.download_dir = DOWNLOAD_FILE_PATH
+            self.formatter.file_path = file_path
+            self.formatter.file_relative_path = f'{SAVED_FILE_PATH}/wa.microsoft.osm.pbf'
+            self.formatter.container_name = None
+            self.formatter.prefix = 'test'
+            mock_download_single_file.return_value = f'{DOWNLOAD_FILE_PATH}/wa.microsoft.osm.pbf'
+            self.formatter.download_single_file = MagicMock(return_value=file_path)
+            self.formatter.storage_client = MagicMock()
+            self.formatter.storage_client.get_file_from_url = MagicMock()
+
+    def tearDown(self):
+        pass
+
+    @patch.object(OSWFormat, 'clean_up')
+    async def test_format_with_valid_file(self, mock_clean_up):
+        mock_clean_up.return_value = None
+        result = await self.formatter.format()
+        self.assertTrue(result.status)
+
+    @patch.object(OSWFormat, 'clean_up')
+    def test_format_with_valid_file_should_generate_pbf_file(self, mock_clean_up):
+        mock_clean_up.return_value = None
+        result = self.formatter.format()
+        self.assertTrue(result.status)
+        files = result.generated_files
+        self.assertEqual(len(files), 3)
+        self.assertTrue(os.path.exists(files[0]))
+        self.assertTrue(os.path.exists(files[1]))
+        self.assertTrue(os.path.exists(files[2]))
+
+    @patch.object(OSWFormat, 'clean_up')
+    async def test_format_with_invalid_file(self, mock_clean_up):
+        file_path = f'{SAVED_FILE_PATH}/test_file.txt'
+        self.formatter.file_path = file_path
+        self.formatter.file_relative_path = f'{SAVED_FILE_PATH}/test_file.txt'
+        mock_clean_up.return_value = None
+        result = await self.formatter.format()
+        self.assertIsNone(result)
+
+    def test_download_single_file(self):
+        file_path = f'{SAVED_FILE_PATH}/wa.microsoft.osm.pbf'
+        downloaded_file_path = self.formatter.download_single_file(file_upload_path=file_path)
+        self.assertEqual(downloaded_file_path, file_path)
+
+    def test_create_zip(self):
+        file_paths = []
+        for i in range(3):
+            file_path = os.path.join(self.formatter.download_dir, f'test_file_{i}.txt')
+            with open(file_path, 'w') as f:
+                f.write(f'Test content for file {i}')
+            file_paths.append(file_path)
+
+        zip_filename = self.formatter.create_zip(file_paths)
+        self.assertTrue(os.path.isfile(zip_filename))
+
+        for file_path in file_paths:
+            self.assertFalse(os.path.exists(file_path))
 
 
 class TestOSWFormatDownload(unittest.TestCase):
