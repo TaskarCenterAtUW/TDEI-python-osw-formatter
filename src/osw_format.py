@@ -1,14 +1,21 @@
 import os
 import shutil
 import logging
+import zipfile
+import asyncio
 import traceback
-from pathlib import Path
 from .config import Settings
 from osm_osw_reformatter import Formatter
 
 logging.basicConfig()
 logger = logging.getLogger('osw-formatter')
 logger.setLevel(logging.INFO)
+
+AVAILABLE_EXTENSIONS = ['.zip', '.pbf']
+
+
+async def async_format(formatter):
+    return await formatter.osm2osw()
 
 
 class OSWFormat:
@@ -28,14 +35,16 @@ class OSWFormat:
 
     def format(self):
         root, ext = os.path.splitext(self.file_relative_path)
-        print(self.file_path)
-        if ext and ext.lower() == '.zip':
+        if ext and ext.lower() in AVAILABLE_EXTENSIONS:
             downloaded_file_path = self.download_single_file(self.file_path)
 
             try:
                 logger.info(f' Downloaded file path: {downloaded_file_path}')
                 formatter = Formatter(workdir=self.download_dir, file_path=downloaded_file_path, prefix=self.prefix)
-                formatter_response = formatter.osw2osm()
+                if ext.lower() == '.zip':
+                    formatter_response = formatter.osw2osm()
+                else:
+                    formatter_response = asyncio.run(asyncio.wait_for(async_format(formatter), timeout=20))
                 OSWFormat.clean_up(downloaded_file_path, self.download_dir)
                 return formatter_response
             except Exception as err:
@@ -71,3 +80,14 @@ class OSWFormat:
             folder = os.path.join(download_dir, path)
             logger.info(f' Removing Folder: {folder}')
             shutil.rmtree(folder, ignore_errors=True)
+
+    def create_zip(self, files):
+        zip_filename = os.path.join(self.download_dir, f'{self.prefix}.zip')
+        with zipfile.ZipFile(zip_filename, 'w') as zip_file:
+            for file in files:
+                # Add each file to the zip file
+                zip_file.write(file, os.path.basename(file))
+
+        for file in files:
+            os.remove(file)
+        return zip_filename
