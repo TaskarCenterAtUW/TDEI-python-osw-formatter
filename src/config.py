@@ -7,9 +7,9 @@ load_dotenv()
 
 class EventBusSettings:
     connection_string: str = os.environ.get('QUEUECONNECTION', None)
-    validation_topic: str = os.environ.get('VALIDATION_TOPIC', None)
-    validation_subscription: str = os.environ.get('VALIDATION_SUBSCRIPTION', None)
-    formatter_topic: str = os.environ.get('FORMATTER_TOPIC', None)
+    validation_topic: str = os.environ.get('FORMATTER_TOPIC', None)
+    validation_subscription: str = os.environ.get('FORMATTER_SUBSCRIPTION', None)
+    formatter_topic: str = os.environ.get('FORMATTER_UPLOAD_TOPIC', None)
     container_name: str = os.environ.get('CONTAINER_NAME', 'osw')
 
 

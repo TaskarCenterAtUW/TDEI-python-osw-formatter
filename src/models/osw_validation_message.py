@@ -11,7 +11,6 @@ class OSWValidationMessage:
         self._message = data.get('message', None)
         self._message_type = data.get('messageType', None)
         self._message_id = data.get('messageId', '')
-        self._published_date = data.get('publishedDate', None)
         self.data = OSWValidationData(data=upload_data) if upload_data else {}
 
     @property
@@ -37,14 +36,6 @@ class OSWValidationMessage:
     @message_id.setter
     def message_id(self, value):
         self._message_id = value
-
-    @property
-    def published_date(self):
-        return self._published_date
-
-    @published_date.setter
-    def published_date(self, value):
-        self._published_date = value
 
     def to_json(self):
         self.data = self.data.to_json()

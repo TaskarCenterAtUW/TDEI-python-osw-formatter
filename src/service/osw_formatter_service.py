@@ -72,23 +72,19 @@ class OSWFomatterService:
     def format(self, received_message: OSWValidationMessage):
         tdei_record_id: str = ""
         try:
-            tdei_record_id = received_message.data.tdei_record_id
+            tdei_record_id = received_message.message_id
 
             logger.info(
                 f"Received message for: {tdei_record_id} Message received for formatting !"
             )
-            if received_message.data.meta.isValid is False:
-                error_msg = "Received failed workflow request"
-                logger.error(f"{tdei_record_id}, {error_msg} !")
-                raise Exception(error_msg)
 
-            if received_message.data.meta.file_upload_path is None:
+            if received_message.data.file_upload_path is None:
                 error_msg = "Request does not have a valid file path specified."
                 logger.error(f"{tdei_record_id}, {error_msg} !")
                 raise Exception(error_msg)
 
             file_upload_path = urllib.parse.unquote(
-                received_message.data.meta.file_upload_path
+                received_message.data.file_upload_path
             )
             if file_upload_path:
                 formatter = OSWFormat(
@@ -105,7 +101,7 @@ class OSWFomatterService:
                         converted_file = result.generated_files
                     upload_path = self.upload_to_azure(file_path=converted_file,
                                                        project_group_id=received_message.data.tdei_project_group_id,
-                                                       record_id=received_message.data.tdei_record_id)
+                                                       record_id=tdei_record_id)
                     formatter_result.is_valid = True
                     formatter_result.validation_message = (
                         "Formatting Successful!"
@@ -159,21 +155,15 @@ class OSWFomatterService:
             return None
 
     def send_status(self, result: ValidationResult, upload_message: OSWValidationMessage, upload_url=None):
-        upload_message.data.meta.isValid = result.is_valid
-        upload_message.data.meta.validationMessage = result.validation_message
-        upload_message.data.stage = "osw-formatter"
-
-        upload_message.data.response.success = result.is_valid
-        upload_message.data.response.message = str(result.validation_message)
+        upload_message.data.success = result.is_valid
+        upload_message.data.message = result.validation_message
         if upload_url:
-            upload_message.data.meta.download_xml_url = upload_url
+            upload_message.data.formatted_url = upload_url
         data = QueueMessage.data_from(
             {
-                "messageId": uuid.uuid1().hex[0:24],
-                "message": upload_message.message or "OSW format output",
-                "messageType": "osw-format-result",
+                "messageId": upload_message.message_id,
+                "messageType": upload_message.message_type,
                 "data": upload_message.data.to_json(),
-                "publishedDate": str(datetime.now()),
             }
         )
         try:
@@ -222,10 +212,8 @@ class OSWFomatterService:
 
         data = QueueMessage.data_from({
             'messageId': uuid.uuid1().hex[0:24],
-            'message': 'OSW formatter output',
             'messageType': 'osw-formatter-response',
-            'data': asdict(response),
-            'publishedDate': str(datetime.now())
+            'data': asdict(response)
         })
         self.publishing_topic.publish(data=data)
         logger.info(f'Finished sending response for {response.jobId}')

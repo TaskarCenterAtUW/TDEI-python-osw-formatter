@@ -4,30 +4,12 @@ from .queue_message_content import Request, Response, Meta
 
 class OSWValidationData:
     def __init__(self, data: dict):
-        polygon = data.get('polygon', None)
-        request = data.get('request', None)
-        meta = data.get('meta', None)
-
-        response = data.get('response', None)
-        self._stage = data.get('stage', '')
-        self.request = Request(data=request) if request else {}
-        self.meta = Meta(data=meta) if meta else {}
-        self.response = Response(data=response) if response else {}
-        self._tdei_record_id = data.get('tdei_record_id', '')
         self._tdei_project_group_id = data.get('tdei_project_group_id', '')
-        self._user_id = data.get('user_id', '')
-
-    @property
-    def stage(self): return self._stage
-
-    @stage.setter
-    def stage(self, value): self._stage = value
-
-    @property
-    def tdei_record_id(self): return self._tdei_record_id
-
-    @tdei_record_id.setter
-    def tdei_record_id(self, value): self._tdei_record_id = value
+        self._file_upload_path = data.get('file_upload_path', '')
+        self._source_url = data.get('file_upload_path', '')
+        self._formatted_url = data.get('formatted_url', None)
+        self._success = data.get('success', False)
+        self._message = data.get('message', '')
 
     @property
     def tdei_project_group_id(self): return self._tdei_project_group_id
@@ -36,15 +18,30 @@ class OSWValidationData:
     def tdei_project_group_id(self, value): self._tdei_project_group_id = value
 
     @property
-    def user_id(self): return self._user_id
+    def file_upload_path(self): return self._file_upload_path
 
-    @user_id.setter
-    def user_id(self, value): self._user_id = value
+    @file_upload_path.setter
+    def file_upload_path(self, value): self._file_upload_path = value
+
+    @property
+    def formatted_url(self): return self._formatted_url
+
+    @formatted_url.setter
+    def formatted_url(self, value): self._formatted_url = value
+
+    @property
+    def success(self): return self._success
+
+    @success.setter
+    def success(self, value): self._success = value
+
+    @property
+    def message(self): return self._message
+
+    @message.setter
+    def message(self, value): self._message = value
 
     def to_json(self):
-        self.request = to_json(self.request.__dict__)
-        self.meta = to_json(self.meta.__dict__)
-        self.response = to_json(self.response.__dict__)
         return to_json(self.__dict__)
 
 
