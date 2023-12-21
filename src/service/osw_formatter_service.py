@@ -170,7 +170,7 @@ class OSWFomatterService:
             self.publishing_topic.publish(data=data)
         except Exception as e:
             logger.error(e)
-        logger.info(f"Publishing message for : {upload_message.data.tdei_record_id}")
+        logger.info(f"Publishing message for : {upload_message.message_id}")
 
     def process_on_demand_format(self, request: OSWOnDemandRequest):
         logger.info("Received on demand request")
