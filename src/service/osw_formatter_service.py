@@ -1,4 +1,5 @@
 import os
+import time
 import uuid
 import logging
 import traceback
@@ -136,19 +137,19 @@ class OSWFomatterService:
 
     def upload_to_azure(self, file_path=None, project_group_id=None, record_id=None):
         try:
-            base_filename = os.path.basename(file_path)
-            file_extension = Path(file_path).suffix
+            unix_timestamp = int(time.time())
             now = datetime.now()
             year_month_str = now.strftime("%Y/%B").upper()
             filename = f"{year_month_str}"
+
+            base_filename, file_extension = os.path.splitext(os.path.basename(file_path))
+            updated_filename = f'{base_filename}_{unix_timestamp}{file_extension}'
+
             if project_group_id:
                 filename = f"{filename}/{project_group_id}"
             if record_id:
                 filename = f"{filename}/{record_id}"
-            if file_extension == '.zip':
-                filename = f'{filename}/xml/{base_filename}'
-            elif file_extension == '.pbf':
-                filename = f'{filename}/pbf/{base_filename}'
+            filename = f'{filename}/{updated_filename}'
             return self.upload_to_azure_on_demand(remote_path=filename, local_url=file_path)
         except Exception as e:
             logger.error(e)
