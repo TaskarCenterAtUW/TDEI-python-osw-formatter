@@ -49,13 +49,12 @@ class OSWFomatterService:
                 queue_message = QueueMessage.to_dict(message)
                 print(message.messageType)
                 messageType = message.messageType
-                if messageType == "osw-formatter-request":
-                    print("received something")
+                if "ON_DEMAND" in messageType:
                     print("Received on demand request")
                     ondemand_request = OSWOnDemandRequest(**queue_message["data"])
                     print(ondemand_request)
                     pthread = threading.Thread(
-                        target=self.process_on_demand_format, args=[ondemand_request]
+                        target=self.process_on_demand_format, args=[ondemand_request, message]
                     )
                     pthread.start()
                     return
@@ -173,7 +172,7 @@ class OSWFomatterService:
             logger.error(e)
         logger.info(f"Publishing message for : {upload_message.message_id}")
 
-    def process_on_demand_format(self, request: OSWOnDemandRequest):
+    def process_on_demand_format(self, request: OSWOnDemandRequest, recivedMessage: QueueMessage):
         logger.info("Received on demand request")
         logger.info(request.jobId)
         logger.info(request.sourceUrl)
@@ -206,14 +205,13 @@ class OSWFomatterService:
             response = OSWOnDemandResponse(request.sourceUrl, request.jobId, 'failed', new_file_remote_url,
                                            result.error)
 
-        self.send_on_demand_response(response)
+        self.send_on_demand_response(response= response, upload_message=recivedMessage)
 
-    def send_on_demand_response(self, response: OSWOnDemandResponse):
+    def send_on_demand_response(self, response: OSWOnDemandResponse, upload_message: QueueMessage):
         logger.info(f"Sending response for {response.jobId}")
-
         data = QueueMessage.data_from({
-            'messageId': uuid.uuid1().hex[0:24],
-            'messageType': 'osw-formatter-response',
+            "messageId": upload_message.messageId,
+            "messageType": upload_message.messageType,
             'data': asdict(response)
         })
         self.publishing_topic.publish(data=data)
