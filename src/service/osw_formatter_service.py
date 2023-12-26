@@ -1,11 +1,9 @@
 import os
 import time
-import uuid
 import logging
 import traceback
 import threading
 import urllib.parse
-from pathlib import Path
 from datetime import datetime
 from src.config import Settings
 from python_ms_core import Core
@@ -47,14 +45,14 @@ class OSWFomatterService:
         def process(message) -> None:
             if message is not None:
                 queue_message = QueueMessage.to_dict(message)
-                print(message.messageType)
-                messageType = message.messageType
+                print(message['messageType'])
+                messageType = message['messageType']
                 if "ON_DEMAND" in messageType:
                     print("Received on demand request")
-                    ondemand_request = OSWOnDemandRequest(**queue_message["data"])
+                    ondemand_request = OSWOnDemandRequest(messageType=messageType, messageId=message['messageId'], data=queue_message['data'])
                     print(ondemand_request)
                     pthread = threading.Thread(
-                        target=self.process_on_demand_format, args=[ondemand_request, message]
+                        target=self.process_on_demand_format, args=[ondemand_request]
                     )
                     pthread.start()
                     return
@@ -121,7 +119,7 @@ class OSWFomatterService:
                         result=formatter_result, upload_message=received_message
                     )
             else:
-                raise Exception("File entity not found")
+                raise Exception('File entity not found')
         except Exception as e:
             logger.error(
                 f"{tdei_record_id} Error occurred while formatting OSW request, {e}"
@@ -172,50 +170,58 @@ class OSWFomatterService:
             logger.error(e)
         logger.info(f"Publishing message for : {upload_message.message_id}")
 
-    def process_on_demand_format(self, request: OSWOnDemandRequest, recivedMessage: QueueMessage):
+    def process_on_demand_format(self, request: OSWOnDemandRequest):
         logger.info("Received on demand request")
-        logger.info(request.jobId)
-        logger.info(request.sourceUrl)
-        logger.info(request.source)
-        logger.info(request.target)
+        logger.info(request.data.jobId)
+        logger.info(request.data.sourceUrl)
+        logger.info(request.data.source)
+        logger.info(request.data.target)
         # Format the file
         formatter = OSWFormat(
-            file_path=request.sourceUrl,
+            file_path=request.data.sourceUrl,
             storage_client=self.storage_client,
-            prefix=request.jobId
+            prefix=request.data.jobId
         )
         result = formatter.format()
         formatter_result = ValidationResult()
+        osw_response = asdict(request.data)
         # Create remote path
         if result and result.status and result.error is None and result.generated_files is not None:
             logger.info('Formatting complete')
-            source_file_name = os.path.basename(request.sourceUrl)
+            source_file_name = os.path.basename(request.data.sourceUrl)
             source_file_name_only = os.path.splitext(source_file_name)[0]
-            target_directory = f'jobs/{request.jobId}/{request.target}/'
+            target_directory = f'jobs/{request.data.jobId}/{request.data.target}/'
             target_extension = os.path.splitext(result.generated_files)[1]
             target_file_name = source_file_name_only + target_extension
             target_file_remote_path = os.path.join(target_directory, target_file_name)
-            logger.info('File to be uploaded to ')
-            logger.info(target_file_remote_path)
             new_file_remote_url = self.upload_to_azure_on_demand(remote_path=target_file_remote_path,
                                                                  local_url=result.generated_files)
-            response = OSWOnDemandResponse(request.sourceUrl, request.jobId, 'completed', new_file_remote_url, 'Ok')
+
+            logger.info(f'File to be uploaded to: {target_file_remote_path}')
+
+            osw_response['status'] = 'completed'
+            osw_response['formattedUrl'] = new_file_remote_url
+            osw_response['message'] = 'OK'
+            osw_response['success'] = True
         else:
-            new_file_remote_url = ''
-            response = OSWOnDemandResponse(request.sourceUrl, request.jobId, 'failed', new_file_remote_url,
-                                           result.error)
+            osw_response['status'] = 'failed'
+            osw_response['formattedUrl'] = ''
+            osw_response['message'] = result.error
+            osw_response['success'] = False
 
-        self.send_on_demand_response(response= response, upload_message=recivedMessage)
+        response = OSWOnDemandResponse(messageId=request.messageId, messageType=request.messageType, data=osw_response)
 
-    def send_on_demand_response(self, response: OSWOnDemandResponse, upload_message: QueueMessage):
-        logger.info(f"Sending response for {response.jobId}")
+        self.send_on_demand_response(response= response)
+
+    def send_on_demand_response(self, response: OSWOnDemandResponse):
+        logger.info(f"Sending response for {response.data.jobId}")
         data = QueueMessage.data_from({
-            "messageId": upload_message.messageId,
-            "messageType": upload_message.messageType,
-            'data': asdict(response)
+            "messageId": response.messageId,
+            "messageType": response.messageType,
+            'data': asdict(response.data)
         })
         self.publishing_topic.publish(data=data)
-        logger.info(f'Finished sending response for {response.jobId}')
+        logger.info(f'Finished sending response for {response.data.jobId}')
 
     def upload_to_azure_on_demand(self, remote_path: str, local_url: str):
         container = self.storage_client.get_container(

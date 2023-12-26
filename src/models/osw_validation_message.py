@@ -8,18 +8,9 @@ class OSWValidationMessage:
 
     def __init__(self, data: dict):
         upload_data = data.get('data', None)
-        self._message = data.get('message', None)
         self._message_type = data.get('messageType', None)
         self._message_id = data.get('messageId', '')
         self.data = OSWValidationData(data=upload_data) if upload_data else {}
-
-    @property
-    def message(self):
-        return self._message
-
-    @message.setter
-    def message(self, value):
-        self._message = value
 
     @property
     def message_type(self):
@@ -49,7 +40,7 @@ class OSWValidationMessage:
             try:
                 return OSWValidationMessage(data=message)
             except Exception as e:
-                error = str(e).replace('Upload', 'Invalid parameter,')
+                error = str(e).replace('OSWValidationMessage', 'Invalid parameter,')
                 raise TypeError(error)
 
 

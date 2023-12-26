@@ -19,8 +19,8 @@ load_dotenv()
 
 
 class Settings(BaseSettings):
-    publishing_topic_name: str = os.environ.get('VALIDATION_TOPIC', None)
-    subscription_topic_name: str = os.environ.get('FORMATTER_TOPIC', None)
+    publishing_topic_name: str = os.environ.get('FORMATTER_TOPIC', None)
+    subscription_topic_name: str = os.environ.get('FORMATTER_UPLOAD_TOPIC', None)
     subscription_name: str = 'test_subscription'
     container_name: str = os.environ.get('CONTAINER_NAME', 'tdei-storage-test')
 
