@@ -9,8 +9,7 @@ from tests.unit_tests.service.test_osw_formatter_service import TestOSWFomatterS
 from tests.unit_tests.models.test_osw_ondemand_response import TestOSWOnDemandResponse
 from tests.unit_tests.models.test_osw_validation_message import TestOSWValidationMessage
 from tests.unit_tests.test_osw_format import TestOSWFormat, TestOSMFormat, TestOSWFormatDownload, TesOSWFormatCleanUp
-from tests.unit_tests.models.test_queue_message_content import TestRequest, TestMeta, TestResponse, TestToJson, \
-    TestValidationResult
+from tests.unit_tests.models.test_queue_message_content import TestToJson, TestValidationResult
 
 if __name__ == '__main__':
     # Create a test suite
@@ -26,9 +25,6 @@ if __name__ == '__main__':
     test_suite.addTest(unittest.makeSuite(TestOSMFormat))
     test_suite.addTest(unittest.makeSuite(TestOSWFormatDownload))
     test_suite.addTest(unittest.makeSuite(TesOSWFormatCleanUp))
-    test_suite.addTest(unittest.makeSuite(TestRequest))
-    test_suite.addTest(unittest.makeSuite(TestMeta))
-    test_suite.addTest(unittest.makeSuite(TestResponse))
     test_suite.addTest(unittest.makeSuite(TestToJson))
     test_suite.addTest(unittest.makeSuite(TestValidationResult))
 
