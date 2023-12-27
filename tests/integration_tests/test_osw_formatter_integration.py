@@ -9,13 +9,14 @@ from pathlib import Path
 from dotenv import load_dotenv
 from urllib.parse import urlparse
 from unittest.mock import patch, MagicMock
+from src.models.osw_ondemand_request import OSWOnDemandRequest
 
 # Execute to apply environment variable overrides
 load_dotenv()
 
-os.environ['VALIDATION_TOPIC'] = 'temp-upload'
-os.environ['VALIDATION_SUBSCRIPTION'] = 'upload-validation-processor'
-os.environ['FORMATTER_TOPIC'] = 'temp-validation'
+os.environ['FORMATTER_TOPIC'] = 'temp-upload'
+os.environ['FORMATTER_SUBSCRIPTION'] = 'upload-validation-processor'
+os.environ['FORMATTER_UPLOAD_TOPIC'] = 'temp-validation'
 
 from python_ms_core import Core
 from src.service.osw_formatter_service import OSWFomatterService
@@ -25,6 +26,7 @@ from python_ms_core.core.queue.models.queue_message import QueueMessage
 TEST_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEST_JSON_FILE1 = os.path.join(TEST_DIR, 'test_harness/test_files/passed_case1.json')
 TEST_JSON_FILE2 = os.path.join(TEST_DIR, 'test_harness/test_files/passed_case2.json')
+TEST_JSON_FILE3 = os.path.join(TEST_DIR, 'test_harness/test_files/passed_case3.json')
 SAVED_FILE_PATH = f'{Path.cwd()}/tests/unit_tests/test_files'
 DOWNLOAD_FILE_PATH = f'{Path.cwd()}/downloads'
 
@@ -34,13 +36,14 @@ class TestOSWFormatterIntegration(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.core = Core()
-        cls.upload_topic_name = os.environ['VALIDATION_TOPIC']
-        cls.upload_subscription_name = os.environ['VALIDATION_SUBSCRIPTION']
-        cls.validation_topic_name = os.environ['FORMATTER_TOPIC']
+        cls.upload_topic_name = os.environ['FORMATTER_TOPIC']
+        cls.upload_subscription_name = os.environ['FORMATTER_UPLOAD_TOPIC']
+        cls.validation_topic_name = os.environ['FORMATTER_UPLOAD_TOPIC']
 
     def setUp(self):
         self.test_data1 = self.read_test_data(TEST_JSON_FILE1)
         self.test_data2 = self.read_test_data(TEST_JSON_FILE2)
+        self.test_data3 = self.read_test_data(TEST_JSON_FILE3)
 
     @staticmethod
     def read_test_data(file):
@@ -56,10 +59,9 @@ class TestOSWFormatterIntegration(unittest.TestCase):
         if os.environ['QUEUECONNECTION'] is None:
             self.fail('QUEUECONNECTION environment not set')
         formatter = OSWFomatterService()
-        self.test_data1['tdei_record_id'] = str(uuid.uuid4())
-        self.test_data1['tdei_project_group_id'] = str(uuid.uuid4())
+        self.test_data1['messageId'] = str(uuid.uuid4())
         upload_topic = self.core.get_topic(topic_name=self.upload_topic_name)
-        message = QueueMessage.data_from({'message': '', 'data': self.test_data1})
+        message = QueueMessage.data_from(self.test_data1)
         upload_topic.publish(data=message)
         time.sleep(0.5)  # Wait to get the callback
         formatter.start_listening.assert_called_once()
@@ -69,10 +71,9 @@ class TestOSWFormatterIntegration(unittest.TestCase):
         if os.environ['QUEUECONNECTION'] is None:
             self.fail('QUEUECONNECTION environment not set')
         formatter = OSWFomatterService()
-        self.test_data2['tdei_record_id'] = str(uuid.uuid4())
-        self.test_data2['tdei_project_group_id'] = str(uuid.uuid4())
+        self.test_data2['messageId'] = str(uuid.uuid4())
         upload_topic = self.core.get_topic(topic_name=self.upload_topic_name)
-        message = QueueMessage.data_from({'message': '', 'data': self.test_data2})
+        message = QueueMessage.data_from(self.test_data2)
         upload_topic.publish(data=message)
         time.sleep(0.5)  # Wait to get the callback
         formatter.start_listening.assert_called_once()
@@ -83,11 +84,11 @@ class TestOSWFormatterIntegration(unittest.TestCase):
             self.fail('QUEUECONNECTION environment not set')
         formatter = OSWFomatterService()
         subscribe_function = MagicMock()
-        self.test_data1['tdei_record_id'] = str(uuid.uuid4())
-        message = QueueMessage.data_from({'message': '', 'data': self.test_data1})
+        self.test_data1['messageId'] = str(uuid.uuid4())
+        message = QueueMessage.data_from(self.test_data1)
         formatter.publishing_topic.publish(data=message)
         validation_topic = self.core.get_topic(topic_name=self.validation_topic_name)
-        async with validation_topic.subscribe(subscription='temp-validation-result', callback=subscribe_function):
+        with validation_topic.subscribe(subscription='temp-validation-result', callback=subscribe_function):
             await asyncio.sleep(0.5)  # Wait for callback
             subscribe_function.assert_called_once()
             formatter.start_listening.assert_called_once()
@@ -98,11 +99,11 @@ class TestOSWFormatterIntegration(unittest.TestCase):
             self.fail('QUEUECONNECTION environment not set')
         formatter = OSWFomatterService()
         subscribe_function = MagicMock()
-        self.test_data2['tdei_record_id'] = str(uuid.uuid4())
-        message = QueueMessage.data_from({'message': '', 'data': self.test_data2})
+        self.test_data2['messageId'] = str(uuid.uuid4())
+        message = QueueMessage.data_from(self.test_data2)
         formatter.publishing_topic.publish(data=message)
         validation_topic = self.core.get_topic(topic_name=self.validation_topic_name)
-        async with validation_topic.subscribe(subscription='temp-validation-result', callback=subscribe_function):
+        with validation_topic.subscribe(subscription='temp-validation-result', callback=subscribe_function):
             await asyncio.sleep(0.5)  # Wait for callback
             subscribe_function.assert_called_once()
             formatter.start_listening.assert_called_once()
@@ -143,7 +144,12 @@ class TestOSWFormatterIntegration(unittest.TestCase):
             project_group_id=project_id,
             record_id=record_id
         )
-        self.assertEqual(os.path.basename(uploaded_path), destination_file)
+        # Extract filenames without timestamp
+        uploaded_filename = os.path.splitext(os.path.basename(uploaded_path))[0].rsplit('_', 1)[0]
+        destination_filename = os.path.splitext(destination_file)[0]
+
+        # Assert filenames without timestamp are equal
+        self.assertEqual(uploaded_filename, destination_filename)
 
     @patch.object(OSWFomatterService, 'start_listening', new=MagicMock())
     def test_format_zip(self):
@@ -152,8 +158,8 @@ class TestOSWFormatterIntegration(unittest.TestCase):
 
         formatter = OSWFomatterService()
         record_id = str(uuid.uuid4())
-        self.test_data1['tdei_record_id'] = record_id
-        message = QueueMessage.data_from({'message': '', 'data': self.test_data1})
+        self.test_data1['messageId'] = record_id
+        message = QueueMessage.data_from(self.test_data1)
         queue_message = QueueMessage.to_dict(message)
         upload_message = OSWValidationMessage.data_from(queue_message)
         formatter.format(received_message=upload_message)
@@ -166,12 +172,30 @@ class TestOSWFormatterIntegration(unittest.TestCase):
 
         formatter = OSWFomatterService()
         record_id = str(uuid.uuid4())
-        self.test_data2['tdei_record_id'] = record_id
-        message = QueueMessage.data_from({'message': '', 'data': self.test_data2})
+        self.test_data2['messageId'] = record_id
+        message = QueueMessage.data_from(self.test_data2)
         queue_message = QueueMessage.to_dict(message)
         upload_message = OSWValidationMessage.data_from(queue_message)
         formatter.format(received_message=upload_message)
         self.assertTrue(os.path.isfile(f'{DOWNLOAD_FILE_PATH}/{record_id}.zip'))
+
+    @patch.object(OSWFomatterService, 'start_listening', new=MagicMock())
+    def test_ondemand(self):
+        if os.environ['QUEUECONNECTION'] is None:
+            self.fail('QUEUECONNECTION environment not set')
+
+        formatter = OSWFomatterService()
+        record_id = str(uuid.uuid4())
+        self.test_data3['messageId'] = record_id
+        message = QueueMessage.data_from(self.test_data3)
+        queue_message = QueueMessage.to_dict(message)
+        queue_message['data']['jobId'] = record_id
+        upload_message = OSWOnDemandRequest(messageType=queue_message['messageType'], messageId=queue_message['messageId'], data=queue_message['data'])
+        formatter.process_on_demand_format(request=upload_message)
+        self.assertTrue(os.path.isfile(f'{DOWNLOAD_FILE_PATH}/{record_id}.graph.osm.xml'))
+
+
+
 
 
 if __name__ == '__main__':

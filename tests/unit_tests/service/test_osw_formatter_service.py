@@ -3,8 +3,7 @@ import json
 import unittest
 from pathlib import Path
 from typing import Optional
-from datetime import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from unittest.mock import Mock, MagicMock, patch, call
 from src.service.osw_formatter_service import OSWFomatterService
 from src.osw_format import OSWFormat
@@ -17,9 +16,13 @@ current_dir = os.path.dirname(os.path.abspath(os.path.join(__file__, '../../')))
 parent_dir = os.path.dirname(current_dir)
 
 TEST_JSON_FILE = os.path.join(parent_dir, 'src/assets/osw-upload.json')
+ON_DEMAND_TEST_JSON_FILE = os.path.join(parent_dir, 'src/assets/osw-format.json')
 
 TEST_FILE = open(TEST_JSON_FILE)
 TEST_DATA = json.loads(TEST_FILE.read())
+
+ONDEMAND_REQUEST_FILE = open(ON_DEMAND_TEST_JSON_FILE)
+ONDEMAND_REQUEST_DATA = json.loads(ONDEMAND_REQUEST_FILE.read())
 
 SAVED_FILE_PATH = f'{Path.cwd()}/tests/unit_tests/test_files'
 DOWNLOAD_PATH = f'{Path.cwd()}/downloads'
@@ -70,7 +73,6 @@ class TestOSWFomatterService(unittest.TestCase):
 
             # Arrange
         received_message = OSWValidationMessage(data=TEST_DATA)
-        received_message.data.meta.isValid = True
         formatter_result = ValidationResult()
         formatter_result.is_valid = True
         formatter_result.validation_message = 'Validation successful'
@@ -96,7 +98,6 @@ class TestOSWFomatterService(unittest.TestCase):
 
             # Arrange
             received_message = OSWValidationMessage(data=TEST_DATA)
-            received_message.data.meta.isValid = False
             formatter_result = ValidationResult()
             formatter_result.is_valid = False
             formatter_result.validation_message = 'Validation failed'
@@ -122,7 +123,6 @@ class TestOSWFomatterService(unittest.TestCase):
 
             # Arrange
             received_message = OSWValidationMessage(data=TEST_DATA)
-            received_message.data.meta.file_upload_path = None
             formatter_result = ValidationResult()
             formatter_result.is_valid = False
             formatter_result.validation_message = 'Validation failed'
@@ -164,8 +164,8 @@ class TestOSWFomatterService(unittest.TestCase):
         self.formatter.send_status(result=result, upload_message=upload_message)
 
         # Add assertions for the expected behavior
-        self.assertEqual(upload_message.data.stage, 'osw-formatter')
-        self.assertEqual(upload_message.data.response['message'], 'Formatting Successful')
+        self.assertEqual(upload_message.data.success, True)
+        self.assertEqual(upload_message.data.message, 'Formatting Successful')
 
     def test_valid_send_status_with_upload_url(self):
         self.formatter.publishing_topic = MagicMock()
@@ -180,8 +180,8 @@ class TestOSWFomatterService(unittest.TestCase):
         self.formatter.send_status(result=result, upload_message=upload_message, upload_url='some_url')
 
         # Add assertions for the expected behavior
-        self.assertEqual(upload_message.data.stage, 'osw-formatter')
-        self.assertEqual(upload_message.data.response['message'], 'Formatting Successful')
+        self.assertEqual(upload_message.data.success, True)
+        self.assertEqual(upload_message.data.message, 'Formatting Successful')
 
     def test_invalid_send_status(self):
         self.formatter.publishing_topic = MagicMock()
@@ -196,8 +196,8 @@ class TestOSWFomatterService(unittest.TestCase):
         self.formatter.send_status(result=result, upload_message=upload_message)
 
         # Add assertions for the expected behavior
-        self.assertEqual(upload_message.data.stage, 'osw-formatter')
-        self.assertEqual(upload_message.data.response['message'], 'Formatting Failed')
+        self.assertEqual(upload_message.data.success, False)
+        self.assertEqual(upload_message.data.message, 'Formatting Failed')
 
     @patch.object(OSWFormat, 'format')
     def test_process_on_demand_format_success(self, mock_format):
@@ -212,8 +212,13 @@ class TestOSWFomatterService(unittest.TestCase):
             self.formatter.upload_to_azure_on_demand.return_value = 'some_url'
             self.formatter.send_on_demand_response = MagicMock()
             self.formatter.send_on_demand_response.return_value = MagicMock()
-            #
-            request = OSWOnDemandRequest(sourceUrl=file_path, jobId='jobId', source='source', target='target')
+
+            ondemand_request = ONDEMAND_REQUEST_DATA
+            request = OSWOnDemandRequest(
+                messageId=ondemand_request['messageId'],
+                messageType=ondemand_request['messageType'],
+                data=ondemand_request['data']
+            )
             self.formatter.process_on_demand_format(request=request)
 
             mock_format.assert_called_once()
@@ -231,8 +236,13 @@ class TestOSWFomatterService(unittest.TestCase):
             self.formatter.upload_to_azure_on_demand.return_value = 'some_url'
             self.formatter.send_on_demand_response = MagicMock()
             self.formatter.send_on_demand_response.return_value = MagicMock()
-            #
-            request = OSWOnDemandRequest(sourceUrl=file_path, jobId='jobId', source='source', target='target')
+
+            ondemand_request = ONDEMAND_REQUEST_DATA
+            request = OSWOnDemandRequest(
+                messageId=ondemand_request['messageId'],
+                messageType=ondemand_request['messageType'],
+                data=ondemand_request['data']
+            )
             self.formatter.process_on_demand_format(request=request)
 
             mock_format.assert_called_once()
@@ -243,8 +253,19 @@ class TestOSWFomatterService(unittest.TestCase):
         self.formatter.publishing_topic.publish = MagicMock()
         self.formatter.publishing_topic.publish.return_value = MagicMock()
 
-        response = OSWOnDemandResponse(sourceUrl='some_url', jobId='jobId', status='completed',
-                                       formattedUrl='target_url', message='some_message')
+        ondemand_request = ONDEMAND_REQUEST_DATA
+        upload_message = OSWOnDemandRequest(
+            messageId=ondemand_request['messageId'],
+            messageType=ondemand_request['messageType'],
+            data=ondemand_request['data']
+        )
+        msg = asdict(upload_message.data)
+        msg['status'] = 'completed'
+        msg['formattedUrl'] = 'target_url'
+        msg['message'] = 'some_message'
+        msg['success'] = True
+
+        response = OSWOnDemandResponse(messageId=upload_message.messageId, messageType=upload_message.messageType, data=msg)
         self.formatter.send_on_demand_response(response=response)
         self.formatter.publishing_topic.publish.assert_called_once()
 

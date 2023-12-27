@@ -24,11 +24,11 @@ The project is built on Python with FastAPI framework. All the regular nuances f
 - Connecting this to cloud will need the following in the `.env` file
 
 ```bash
-VALIDATION_TOPIC=xxx
-VALIDATION_SUBSCRIPTION=xxx
-FORMATTER_TOPIC=xxx
 QUEUECONNECTION=xxx
 STORAGECONNECTION=xxx
+FORMATTER_TOPIC=xxx
+FORMATTER_SUBSCRIPTION=xxx
+FORMATTER_UPLOAD_TOPIC=xxx
 CONTAINER_NAME=xxx
 ```
 
@@ -74,7 +74,7 @@ To install the GDAL library (Geospatial Data Abstraction Library) on your system
         4. Make sure to add the GDAL bin directory to your system's PATH variable if it's not added automatically.
 
 
-### How to Setup and Build
+### How to Set up and Build
 Follow the steps to install the python packages required for both building and running the application
 
 1. Setup virtual environment
@@ -97,9 +97,70 @@ Follow the steps to install the python packages required for both building and r
     ```
 3. By default `get` call on `localhost:8000/health` gives a sample response
 4. Other routes include a `ping` with get and post. Make `get` or `post` request to `http://localhost:8000/health/ping`
-5. Once the server starts, it will start to listening the subscriber(`UPLOAD_SUBSCRIPTION` should be in env file)
+5. Once the server starts, it will start to listening the subscriber(`FORMATTER_SUBSCRIPTION` should be in env file)
 
-### How to Setup and run the Tests
+#### Request Format
+```json
+  {
+    "messageId": "tdei_record_id",
+    "messageType": "workflow_identifier",
+    "data": {
+      "file_upload_path": "file_upload_path",
+      "tdei_project_group_id": "tdei_project_group_id"
+    } 
+  }
+```
+
+#### Response Format
+```json
+  {
+    "messageId": "tdei_record_id",
+    "messageType": "workflow_identifier",
+    "data": {
+      "file_upload_path": "file_upload_path",
+      "tdei_project_group_id": "tdei_project_group_id",
+      "source_url": "file_upload_path",
+      "formatted_url": "uploaded_url",
+      "success": true/false,
+      "message": "message" 
+    },
+  "publishedDate": "published date"
+  }
+```
+
+### On Demand Request Format
+```json
+{
+  "messageId": "c8c76e89f30944d2b2abd2491bd95337",
+  "messageType": "workflow_identifier ON_DEMAND",
+  "data": {
+    "sourceUrl": "https://tdeisamplestorage.blob.core.windows.net/osw/2023/11/c552d5d1-0719-4647-b86d-6ae9b25327b7/aff14a0d29ab4acbaef639063462e85b/naresh-som-2.zip",
+    "jobId": "42",
+    "source": "osw",
+    "target": "osm"
+  }
+}
+```
+
+### On Demand Response Format
+```json
+{
+  "messageId": "c8c76e89f30944d2b2abd2491bd95337",
+  "messageType": "workflow_identifier ON_DEMAND",
+  "data": {
+    "sourceUrl": "https://tdeisamplestorage.blob.core.windows.net/osw/2023/11/c552d5d1-0719-4647-b86d-6ae9b25327b7/aff14a0d29ab4acbaef639063462e85b/naresh-som-2.zip",
+    "jobId": "42",
+    "source": "osw",
+    "target": "osm",
+    "formattedUrl": "https://tdeisamplestorage.blob.core.windows.net/osw/2023/11/c552d5d1-0719-4647-b86d-6ae9b25327b7/aff14a0d29ab4acbaef639063462e85b/naresh-som-2.zip",
+    "success": true,
+    "message": ""
+  }
+}
+```
+
+
+### How to Set up and run the Tests
 
 Make sure you have set up the project properly before running the tests, see above for `How to Setup and Build`.
 

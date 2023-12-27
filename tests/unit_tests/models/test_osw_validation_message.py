@@ -20,12 +20,8 @@ class TestOSWValidationMessage(unittest.TestCase):
         data = TEST_DATA
         self.upload = OSWValidationMessage(data)
 
-    def test_message(self):
-        self.upload.message = 'New message'
-        self.assertEqual(self.upload.message, 'New message')
-
     def test_message_type(self):
-        self.assertEqual(self.upload.message_type, 'osw-upload')
+        self.assertEqual(self.upload.message_type, 'workflow_identifier')
         self.upload.message_type = 'New messageType'
         self.assertEqual(self.upload.message_type, 'New messageType')
 
@@ -33,30 +29,22 @@ class TestOSWValidationMessage(unittest.TestCase):
         self.upload.message_id = 'New messageId'
         self.assertEqual(self.upload.message_id, 'New messageId')
 
-    def test_published_date(self):
-        self.assertEqual(self.upload.published_date, '2023-02-08T08:33:36.267213Z')
-        self.upload.published_date = '2023-05-24'
-        self.assertEqual(self.upload.published_date, '2023-05-24')
-
     def test_data(self):
         self.assertIsInstance(self.upload.data, OSWValidationData)
-        self.assertEqual(self.upload.data.stage, 'OSW-Upload')
-        self.upload.data.stage = 'Test stage'
-        self.assertEqual(self.upload.data.stage, 'Test stage')
+        self.upload.data.tdei_project_group_id = 'Test Group ID'
+        self.assertEqual(self.upload.data.tdei_project_group_id, 'Test Group ID')
 
     def test_to_json(self):
         self.upload.data.to_json = MagicMock(return_value={})
         json_data = self.upload.to_json()
         self.assertIsInstance(json_data, dict)
-        self.assertEqual(json_data['message_type'], 'osw-upload')
-        self.assertEqual(json_data['published_date'], '2023-02-08T08:33:36.267213Z')
+        self.assertEqual(json_data['message_type'], 'workflow_identifier')
 
     def test_data_from(self):
         message = TEST_DATA
         upload = OSWValidationMessage.data_from(json.dumps(message))
         self.assertIsInstance(upload, OSWValidationMessage)
-        self.assertEqual(upload.message_type, 'osw-upload')
-        self.assertEqual(upload.published_date, '2023-02-08T08:33:36.267213Z')
+        self.assertEqual(upload.message_type, 'workflow_identifier')
 
     def test_upload_to_json(self):
         json_data = self.upload.to_json()

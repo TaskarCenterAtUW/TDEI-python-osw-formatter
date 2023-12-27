@@ -1,10 +1,9 @@
 import os
-import uuid
+import time
 import logging
 import traceback
 import threading
 import urllib.parse
-from pathlib import Path
 from datetime import datetime
 from src.config import Settings
 from python_ms_core import Core
@@ -46,12 +45,11 @@ class OSWFomatterService:
         def process(message) -> None:
             if message is not None:
                 queue_message = QueueMessage.to_dict(message)
-                print(message.messageType)
-                messageType = message.messageType
-                if messageType == "osw-formatter-request":
-                    print("received something")
+                print(message['messageType'])
+                messageType = message['messageType']
+                if "ON_DEMAND" in messageType:
                     print("Received on demand request")
-                    ondemand_request = OSWOnDemandRequest(**queue_message["data"])
+                    ondemand_request = OSWOnDemandRequest(messageType=messageType, messageId=message['messageId'], data=queue_message['data'])
                     print(ondemand_request)
                     pthread = threading.Thread(
                         target=self.process_on_demand_format, args=[ondemand_request]
@@ -72,23 +70,19 @@ class OSWFomatterService:
     def format(self, received_message: OSWValidationMessage):
         tdei_record_id: str = ""
         try:
-            tdei_record_id = received_message.data.tdei_record_id
+            tdei_record_id = received_message.message_id
 
             logger.info(
                 f"Received message for: {tdei_record_id} Message received for formatting !"
             )
-            if received_message.data.meta.isValid is False:
-                error_msg = "Received failed workflow request"
-                logger.error(f"{tdei_record_id}, {error_msg} !")
-                raise Exception(error_msg)
 
-            if received_message.data.meta.file_upload_path is None:
+            if received_message.data.file_upload_path is None:
                 error_msg = "Request does not have a valid file path specified."
                 logger.error(f"{tdei_record_id}, {error_msg} !")
                 raise Exception(error_msg)
 
             file_upload_path = urllib.parse.unquote(
-                received_message.data.meta.file_upload_path
+                received_message.data.file_upload_path
             )
             if file_upload_path:
                 formatter = OSWFormat(
@@ -105,7 +99,7 @@ class OSWFomatterService:
                         converted_file = result.generated_files
                     upload_path = self.upload_to_azure(file_path=converted_file,
                                                        project_group_id=received_message.data.tdei_project_group_id,
-                                                       record_id=received_message.data.tdei_record_id)
+                                                       record_id=tdei_record_id)
                     formatter_result.is_valid = True
                     formatter_result.validation_message = (
                         "Formatting Successful!"
@@ -125,7 +119,7 @@ class OSWFomatterService:
                         result=formatter_result, upload_message=received_message
                     )
             else:
-                raise Exception("File entity not found")
+                raise Exception('File entity not found')
         except Exception as e:
             logger.error(
                 f"{tdei_record_id} Error occurred while formatting OSW request, {e}"
@@ -140,95 +134,94 @@ class OSWFomatterService:
 
     def upload_to_azure(self, file_path=None, project_group_id=None, record_id=None):
         try:
-            base_filename = os.path.basename(file_path)
-            file_extension = Path(file_path).suffix
+            unix_timestamp = int(time.time())
             now = datetime.now()
             year_month_str = now.strftime("%Y/%B").upper()
             filename = f"{year_month_str}"
+
+            base_filename, file_extension = os.path.splitext(os.path.basename(file_path))
+            updated_filename = f'{base_filename}_{unix_timestamp}{file_extension}'
+
             if project_group_id:
                 filename = f"{filename}/{project_group_id}"
             if record_id:
                 filename = f"{filename}/{record_id}"
-            if file_extension == '.zip':
-                filename = f'{filename}/xml/{base_filename}'
-            elif file_extension == '.pbf':
-                filename = f'{filename}/pbf/{base_filename}'
+            filename = f'{filename}/{updated_filename}'
             return self.upload_to_azure_on_demand(remote_path=filename, local_url=file_path)
         except Exception as e:
             logger.error(e)
             return None
 
     def send_status(self, result: ValidationResult, upload_message: OSWValidationMessage, upload_url=None):
-        upload_message.data.meta.isValid = result.is_valid
-        upload_message.data.meta.validationMessage = result.validation_message
-        upload_message.data.stage = "osw-formatter"
-
-        upload_message.data.response.success = result.is_valid
-        upload_message.data.response.message = str(result.validation_message)
+        upload_message.data.success = result.is_valid
+        upload_message.data.message = result.validation_message
         if upload_url:
-            upload_message.data.meta.download_xml_url = upload_url
+            upload_message.data.formatted_url = upload_url
         data = QueueMessage.data_from(
             {
-                "messageId": uuid.uuid1().hex[0:24],
-                "message": upload_message.message or "OSW format output",
-                "messageType": "osw-format-result",
+                "messageId": upload_message.message_id,
+                "messageType": upload_message.message_type,
                 "data": upload_message.data.to_json(),
-                "publishedDate": str(datetime.now()),
             }
         )
         try:
             self.publishing_topic.publish(data=data)
         except Exception as e:
             logger.error(e)
-        logger.info(f"Publishing message for : {upload_message.data.tdei_record_id}")
+        logger.info(f"Publishing message for : {upload_message.message_id}")
 
     def process_on_demand_format(self, request: OSWOnDemandRequest):
         logger.info("Received on demand request")
-        logger.info(request.jobId)
-        logger.info(request.sourceUrl)
-        logger.info(request.source)
-        logger.info(request.target)
+        logger.info(request.data.jobId)
+        logger.info(request.data.sourceUrl)
+        logger.info(request.data.source)
+        logger.info(request.data.target)
         # Format the file
         formatter = OSWFormat(
-            file_path=request.sourceUrl,
+            file_path=request.data.sourceUrl,
             storage_client=self.storage_client,
-            prefix=request.jobId
+            prefix=request.data.jobId
         )
         result = formatter.format()
         formatter_result = ValidationResult()
+        osw_response = asdict(request.data)
         # Create remote path
         if result and result.status and result.error is None and result.generated_files is not None:
             logger.info('Formatting complete')
-            source_file_name = os.path.basename(request.sourceUrl)
+            source_file_name = os.path.basename(request.data.sourceUrl)
             source_file_name_only = os.path.splitext(source_file_name)[0]
-            target_directory = f'jobs/{request.jobId}/{request.target}/'
+            target_directory = f'jobs/{request.data.jobId}/{request.data.target}/'
             target_extension = os.path.splitext(result.generated_files)[1]
             target_file_name = source_file_name_only + target_extension
             target_file_remote_path = os.path.join(target_directory, target_file_name)
-            logger.info('File to be uploaded to ')
-            logger.info(target_file_remote_path)
             new_file_remote_url = self.upload_to_azure_on_demand(remote_path=target_file_remote_path,
                                                                  local_url=result.generated_files)
-            response = OSWOnDemandResponse(request.sourceUrl, request.jobId, 'completed', new_file_remote_url, 'Ok')
-        else:
-            new_file_remote_url = ''
-            response = OSWOnDemandResponse(request.sourceUrl, request.jobId, 'failed', new_file_remote_url,
-                                           result.error)
 
-        self.send_on_demand_response(response)
+            logger.info(f'File to be uploaded to: {target_file_remote_path}')
+
+            osw_response['status'] = 'completed'
+            osw_response['formattedUrl'] = new_file_remote_url
+            osw_response['message'] = 'OK'
+            osw_response['success'] = True
+        else:
+            osw_response['status'] = 'failed'
+            osw_response['formattedUrl'] = ''
+            osw_response['message'] = result.error
+            osw_response['success'] = False
+
+        response = OSWOnDemandResponse(messageId=request.messageId, messageType=request.messageType, data=osw_response)
+
+        self.send_on_demand_response(response= response)
 
     def send_on_demand_response(self, response: OSWOnDemandResponse):
-        logger.info(f"Sending response for {response.jobId}")
-
+        logger.info(f"Sending response for {response.data.jobId}")
         data = QueueMessage.data_from({
-            'messageId': uuid.uuid1().hex[0:24],
-            'message': 'OSW formatter output',
-            'messageType': 'osw-formatter-response',
-            'data': asdict(response),
-            'publishedDate': str(datetime.now())
+            "messageId": response.messageId,
+            "messageType": response.messageType,
+            'data': asdict(response.data)
         })
         self.publishing_topic.publish(data=data)
-        logger.info(f'Finished sending response for {response.jobId}')
+        logger.info(f'Finished sending response for {response.data.jobId}')
 
     def upload_to_azure_on_demand(self, remote_path: str, local_url: str):
         container = self.storage_client.get_container(
