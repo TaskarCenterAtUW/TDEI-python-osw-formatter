@@ -42,15 +42,14 @@ class OSWFomatterService:
             os.makedirs(self.download_dir)
 
     def start_listening(self):
-        def process(message) -> None:
+        def process(message: QueueMessage) -> None:
             if message is not None:
                 queue_message = QueueMessage.to_dict(message)
-                print(message['messageType'])
-                messageType = message['messageType']
+                messageType = message.messageType
                 if "ON_DEMAND" in messageType:
-                    print("Received on demand request")
-                    ondemand_request = OSWOnDemandRequest(messageType=messageType, messageId=message['messageId'], data=queue_message['data'])
-                    print(ondemand_request)
+                    logger.info("Received on demand request")
+                    ondemand_request = OSWOnDemandRequest(messageType=messageType, messageId=message.messageId, data=queue_message['data'])
+                    logger.info(ondemand_request)
                     pthread = threading.Thread(
                         target=self.process_on_demand_format, args=[ondemand_request]
                     )
