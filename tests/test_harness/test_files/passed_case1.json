@@ -1,0 +1,8 @@
+{
+  "messageId": "c8c76e89f30944d2b2abd2491bd95337",
+  "messageType": "workflow_identifier",
+  "data": {
+    "file_upload_path": "https://tdeisamplestorage.blob.core.windows.net/osw/test_upload/osw.zip",
+    "tdei_project_group_id": "0b41ebc5-350c-42d3-90af-3af4ad3628fb"
+  }
+}

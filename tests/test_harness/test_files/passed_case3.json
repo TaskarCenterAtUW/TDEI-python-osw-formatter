@@ -1,0 +1,10 @@
+{
+  "messageId": "c8c76e89f30944d2b2abd2491bd95337",
+  "messageType": "workflow_identifier ON_DEMAND",
+  "data": {
+    "sourceUrl": "https://tdeisamplestorage.blob.core.windows.net/osw/test_upload/osw.zip",
+    "jobId": "42",
+    "source": "osw",
+    "target": "osm"
+  }
+}
