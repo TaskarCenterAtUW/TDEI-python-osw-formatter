@@ -89,7 +89,7 @@ class TestOSMFormat(unittest.TestCase):
         result = self.formatter.format()
         self.assertTrue(result.status)
         files = result.generated_files
-        self.assertEqual(len(files), 3)
+        self.assertEqual(len(files), 6)
         self.assertTrue(os.path.exists(files[0]))
         self.assertTrue(os.path.exists(files[1]))
         self.assertTrue(os.path.exists(files[2]))
