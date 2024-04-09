@@ -92,7 +92,8 @@ class OSWFomatterService:
                 result = formatter.format()
                 formatter_result = ValidationResult()
                 if result and result.status and result.error is None and result.generated_files is not None:
-                    if isinstance(result.generated_files, list):
+                    # Generated files can be .xml or bunch of geojson
+                    if isinstance(result.generated_files, list): # If its a list
                         converted_file = formatter.create_zip(result.generated_files)
                     else:
                         converted_file = result.generated_files
@@ -103,6 +104,8 @@ class OSWFomatterService:
                     formatter_result.validation_message = (
                         "Formatting Successful!"
                     )
+                    
+                    OSWFormat.clean_up(converted_file)
                     self.send_status(
                         result=formatter_result,
                         upload_message=received_message,
@@ -187,16 +190,20 @@ class OSWFomatterService:
         # Create remote path
         if result and result.status and result.error is None and result.generated_files is not None:
             logger.info('Formatting complete')
-            source_file_name = os.path.basename(request.data.sourceUrl)
-            source_file_name_only = os.path.splitext(source_file_name)[0]
-            target_directory = f'jobs/{request.data.jobId}/{request.data.target}/'
-            target_extension = os.path.splitext(result.generated_files)[1]
-            target_file_name = source_file_name_only + target_extension
-            target_file_remote_path = os.path.join(target_directory, target_file_name)
+            if isinstance(result.generated_files, list): # If its a list
+                converted_file = formatter.create_zip(result.generated_files)
+            else:
+                converted_file = result.generated_files
+
+            target_directory = f'jobs/{request.data.jobId}/{request.data.target}'
+            target_file_remote_path = f'{target_directory}/{os.path.basename(converted_file)}'
+
             new_file_remote_url = self.upload_to_azure_on_demand(remote_path=target_file_remote_path,
-                                                                 local_url=result.generated_files)
+                                                                 local_url=converted_file)
 
             logger.info(f'File to be uploaded to: {target_file_remote_path}')
+            
+            OSWFormat.clean_up(converted_file)
 
             osw_response['status'] = 'completed'
             osw_response['formattedUrl'] = new_file_remote_url
