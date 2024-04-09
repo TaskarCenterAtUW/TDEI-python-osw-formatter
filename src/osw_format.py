@@ -11,7 +11,7 @@ logging.basicConfig()
 logger = logging.getLogger('osw-formatter')
 logger.setLevel(logging.INFO)
 
-AVAILABLE_EXTENSIONS = ['.zip', '.pbf']
+AVAILABLE_EXTENSIONS = ['.zip', '.pbf', '.xml', '.osm']
 
 
 async def async_format(formatter):
