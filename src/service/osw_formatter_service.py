@@ -104,6 +104,8 @@ class OSWFomatterService:
                     formatter_result.validation_message = (
                         "Formatting Successful!"
                     )
+                    
+                    OSWFormat.clean_up(converted_file)
                     self.send_status(
                         result=formatter_result,
                         upload_message=received_message,
@@ -200,6 +202,8 @@ class OSWFomatterService:
                                                                  local_url=converted_file)
 
             logger.info(f'File to be uploaded to: {target_file_remote_path}')
+            
+            OSWFormat.clean_up(converted_file)
 
             osw_response['status'] = 'completed'
             osw_response['formattedUrl'] = new_file_remote_url
