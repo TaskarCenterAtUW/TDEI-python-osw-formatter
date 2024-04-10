@@ -44,7 +44,7 @@ class OSWFormat:
                 if ext.lower() == '.zip':
                     formatter_response = formatter.osw2osm()
                 else:
-                    formatter_response = asyncio.run(asyncio.wait_for(async_format(formatter), timeout=20))
+                    formatter_response = asyncio.run(asyncio.wait_for(async_format(formatter), timeout=60*60))
                 OSWFormat.clean_up(downloaded_file_path, self.download_dir)
                 return formatter_response
             except Exception as err:
