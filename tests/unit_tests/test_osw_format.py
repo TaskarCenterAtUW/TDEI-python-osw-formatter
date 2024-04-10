@@ -146,11 +146,14 @@ class TestOSWFormatDownload(unittest.TestCase):
         file.file_path = 'text_file.txt'
         file.get_stream = MagicMock(return_value=b'file_content')
         self.formatter.storage_client.get_file_from_url.return_value = file
+        self.formatter.get_unique_id = MagicMock(return_value=f'abc')
 
         # Act
         result = self.formatter.download_single_file(file_upload_path=file_upload_path)
 
-        expected_file_path = f'{self.formatter.download_dir}/text_file.txt'
+        
+
+        expected_file_path = f'{self.formatter.download_dir}/abc/text_file.txt'
         file.get_stream.assert_called_once()
         # Assert
         with open(expected_file_path, 'rb') as file:
@@ -186,7 +189,7 @@ class TesOSWFormatCleanUp(unittest.TestCase):
     def test_clean_up_folder_exists(self):
         folder_path = f'{DOWNLOAD_FILE_PATH}/test'
         os.makedirs(folder_path)
-        OSWFormat.clean_up('test', DOWNLOAD_FILE_PATH)
+        OSWFormat.clean_up(folder_path, DOWNLOAD_FILE_PATH)
         self.assertFalse(os.path.exists(folder_path))
 
     def test_clean_up_not_exists(self):
