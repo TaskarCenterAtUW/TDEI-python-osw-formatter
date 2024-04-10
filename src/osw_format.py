@@ -6,12 +6,14 @@ import asyncio
 import traceback
 from .config import Settings
 from osm_osw_reformatter import Formatter
+import uuid
+
 
 logging.basicConfig()
 logger = logging.getLogger('osw-formatter')
 logger.setLevel(logging.INFO)
 
-AVAILABLE_EXTENSIONS = ['.zip', '.pbf']
+AVAILABLE_EXTENSIONS = ['.zip', '.pbf', '.xml', '.osm']
 
 
 async def async_format(formatter):
@@ -44,7 +46,7 @@ class OSWFormat:
                 if ext.lower() == '.zip':
                     formatter_response = formatter.osw2osm()
                 else:
-                    formatter_response = asyncio.run(asyncio.wait_for(async_format(formatter), timeout=20))
+                    formatter_response = asyncio.run(asyncio.wait_for(async_format(formatter), timeout=60*60))
                 OSWFormat.clean_up(downloaded_file_path, self.download_dir)
                 return formatter_response
             except Exception as err:
@@ -61,10 +63,15 @@ class OSWFormat:
         try:
             if file.file_path:
                 file_path = os.path.basename(file.file_path)
-                with open(f'{self.download_dir}/{file_path}', 'wb') as blob:
+                unique_id = self.get_unique_id()
+                unique_directory = os.path.join(self.download_dir,unique_id)
+                if not os.path.exists(unique_directory):
+                    os.makedirs(unique_directory)
+                local_download_path =   os.path.join(unique_directory,file_path)
+                with open(local_download_path, 'wb') as blob:
                     blob.write(file.get_stream())
-                logger.info(f' File downloaded to location: {self.download_dir}/{file_path}')
-                return f'{self.download_dir}/{file_path}'
+                logger.info(f' File downloaded to location: {local_download_path}')
+                return local_download_path
             else:
                 logger.info(' File not found!')
         except Exception as e:
@@ -77,9 +84,8 @@ class OSWFormat:
             logger.info(f' Removing File: {path}')
             os.remove(path)
         else:
-            folder = os.path.join(download_dir, path)
-            logger.info(f' Removing Folder: {folder}')
-            shutil.rmtree(folder, ignore_errors=True)
+            logger.info(f' Removing Folder: {path}')
+            shutil.rmtree(path, ignore_errors=True)
 
     def create_zip(self, files):
         zip_filename = os.path.join(self.download_dir, f'{self.prefix}.zip')
@@ -91,3 +97,6 @@ class OSWFormat:
         for file in files:
             os.remove(file)
         return zip_filename
+
+    def get_unique_id(self) -> str:
+        return uuid.uuid1().hex[0:24]
