@@ -9,6 +9,9 @@ class RequestData:
     jobId: str
     source: str
     target: str
+    # Type of job id is string
+    def __post_init__(self):
+        self.jobId = str(self.jobId)
 
 
 @dataclass
