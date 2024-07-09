@@ -52,10 +52,10 @@ class OSWFormat:
             except Exception as err:
                 traceback.print_exc()
                 logger.error(f' Error While Formatting File: {str(err)}')
-                return None
+                raise err
         else:
             logger.error(f' Failed to format because unknown file format')
-            return None
+            raise Exception('Unknown file format')
 
     def download_single_file(self, file_upload_path=None) -> str:
 
