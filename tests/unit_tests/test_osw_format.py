@@ -48,8 +48,8 @@ class TestOSWFormat(unittest.TestCase):
         self.formatter.file_path = file_path
         self.formatter.file_relative_path = f'{SAVED_FILE_PATH}/test_file.txt'
         mock_clean_up.return_value = None
-        result = self.formatter.format()
-        self.assertIsNone(result)
+        with self.assertRaises(Exception):
+            self.formatter.format()
 
     def test_download_single_file(self):
         file_path = f'{SAVED_FILE_PATH}/osw.zip'
