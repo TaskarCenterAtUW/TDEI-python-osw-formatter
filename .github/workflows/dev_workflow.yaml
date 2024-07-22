@@ -44,3 +44,4 @@ jobs:
           registry-username: ${{ secrets.REGISTRY_USERNAME }}
           registry-password: ${{ secrets.REGISTRY_PASSWORD }}
           ports: ${{ secrets.AZURE_CONTAINER_PORTS }}
+          location: "west us"
