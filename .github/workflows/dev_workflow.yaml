@@ -38,7 +38,7 @@ jobs:
         with:
           resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
           name: ${{ secrets.AZURE_CONTAINER_NAME }}
-          images: ${{ secrets.REGISTRY_DOMAIN }}/${{ secrets.REGISTRY_REPO }}:${{ github.sha }}
+          image: ${{ secrets.REGISTRY_DOMAIN }}/${{ secrets.REGISTRY_REPO }}:${{ github.sha }}
           registry-login-server: ${{ secrets.REGISTRY_DOMAIN }}
           registry-username: ${{ secrets.REGISTRY_USERNAME }}
           registry-password: ${{ secrets.REGISTRY_PASSWORD }}
