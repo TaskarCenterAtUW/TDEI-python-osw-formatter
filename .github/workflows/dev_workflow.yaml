@@ -1,4 +1,6 @@
 on:
+  push:
+    branches: [bugfix-1095]
   pull_request:
     branches: [dev]
     types:
@@ -9,7 +11,7 @@ jobs:
   Build:
     environment: Development
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
+    # if: github.event.pull_request.merged == true
     steps:
       - uses: actions/checkout@v2
       - uses: azure/docker-login@v1
@@ -32,7 +34,7 @@ jobs:
         with:
           creds: ${{secrets.TDEI_CORE_AZURE_CREDS}}
       - name: Deploy to Dev Azure Container Instance
-        uses: azure/container-instances-action@v1
+        uses: azure/aci-deploy@v1
         with:
           resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
           name: ${{ secrets.AZURE_CONTAINER_NAME }}
