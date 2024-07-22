@@ -47,13 +47,13 @@ jobs:
           location: "west us"
           memory: 8
           environment-variables: |
-            - name: "QUEUECONNECTION"
+            - name: QUEUECONNECTION
               value: ${{ secrets.QUEUECONNECTION }}
-            - name: "STORAGECONNECTION"
+            - name: STORAGECONNECTION
               value: ${{ secrets.STORAGECONNECTION }}
-            - name: "FORMATTER_SUBSCRIPTION"
-              value: "request-handler"
-            - name: "FORMATTER_TOPIC"
-              value: "osw-formatting-request"
-            - name: "FORMATTER_UPLOAD_TOPIC"
-              value: "osw-formatting-response"
+            - name: FORMATTER_SUBSCRIPTION
+              value: request-handler
+            - name: FORMATTER_TOPIC
+              value: osw-formatting-request
+            - name: FORMATTER_UPLOAD_TOPIC
+              value: osw-formatting-response
