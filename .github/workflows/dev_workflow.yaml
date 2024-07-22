@@ -37,6 +37,7 @@ jobs:
         uses: azure/aci-deploy@v1
         with:
           resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          dns-name-label: ${{ secrets.AZURE_RESOURCE_GROUP }}${{ github.run_number }}
           name: ${{ secrets.AZURE_CONTAINER_NAME }}
           image: ${{ secrets.REGISTRY_DOMAIN }}/${{ secrets.REGISTRY_REPO }}:${{ github.sha }}
           registry-login-server: ${{ secrets.REGISTRY_DOMAIN }}
