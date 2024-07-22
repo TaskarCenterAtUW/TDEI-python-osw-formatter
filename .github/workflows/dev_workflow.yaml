@@ -43,5 +43,17 @@ jobs:
           registry-login-server: ${{ secrets.REGISTRY_DOMAIN }}
           registry-username: ${{ secrets.REGISTRY_USERNAME }}
           registry-password: ${{ secrets.REGISTRY_PASSWORD }}
-          ports: ${{ secrets.AZURE_CONTAINER_PORTS }}
+          ports: 80
           location: "west us"
+          memory: 8
+          environment-variables: |
+            - name: "QUEUECONNECTION"
+              value: ${{ secrets.QUEUECONNECTION }}
+            - name: "STORAGECONNECTION"
+              value: ${{ secrets.STORAGECONNECTION }}
+            - name: "FORMATTER_SUBSCRIPTION"
+              value: "request-handler"
+            - name: "FORMATTER_TOPIC"
+              value: "osw-formatting-request"
+            - name: "FORMATTER_UPLOAD_TOPIC"
+              value: "osw-formatting-response"
