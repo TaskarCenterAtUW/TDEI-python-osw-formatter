@@ -81,7 +81,7 @@ class OSWFormat:
     def clean_up(path, download_dir=None):
         if os.path.isfile(path):
             logger.info(f' Removing File: {path}')
-            # os.remove(path)
+            os.remove(path)
         else:
             logger.info(f' Removing Folder: {path}')
             shutil.rmtree(path, ignore_errors=True)
