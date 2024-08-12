@@ -1,10 +1,10 @@
 {
-  "messageId": "c8c76e89f30944d2b2abd2491bd95340",
+  "messageId": "c8c76e89f30944d2b2abd2491bd95338",
   "messageType": "workflow_identifier ON_DEMAND",
   "data": {
-    "sourceUrl": "https://tdeisamplestorage.blob.core.windows.net/osw/test_upload/city_spokane.zip",
+    "sourceUrl": "https://tdeisamplestorage.blob.core.windows.net/osw/jobs/formatting/2024/4/005ead26c9c24bbf8fdbe042c79e8a55/wa.seattle.uw.osm.pbf",
     "jobId": "199",
-    "source": "osw",
-    "target": "osm"
+    "source": "osm",
+    "target": "osw"
   }
 }
