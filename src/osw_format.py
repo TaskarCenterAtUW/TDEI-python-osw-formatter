@@ -8,7 +8,6 @@ from .config import Settings
 from osm_osw_reformatter import Formatter
 import uuid
 
-
 logging.basicConfig()
 logger = logging.getLogger('osw-formatter')
 logger.setLevel(logging.INFO)
@@ -46,7 +45,7 @@ class OSWFormat:
                 if ext.lower() == '.zip':
                     formatter_response = formatter.osw2osm()
                 else:
-                    formatter_response = asyncio.run(asyncio.wait_for(async_format(formatter), timeout=60*60))
+                    formatter_response = asyncio.run(asyncio.wait_for(async_format(formatter), timeout=60 * 60))
                 OSWFormat.clean_up(downloaded_file_path, self.download_dir)
                 return formatter_response
             except Exception as err:
@@ -64,10 +63,10 @@ class OSWFormat:
             if file.file_path:
                 file_path = os.path.basename(file.file_path)
                 unique_id = self.get_unique_id()
-                unique_directory = os.path.join(self.download_dir,unique_id)
+                unique_directory = os.path.join(self.download_dir, unique_id)
                 if not os.path.exists(unique_directory):
                     os.makedirs(unique_directory)
-                local_download_path =   os.path.join(unique_directory,file_path)
+                local_download_path = os.path.join(unique_directory, file_path)
                 with open(local_download_path, 'wb') as blob:
                     blob.write(file.get_stream())
                 logger.info(f' File downloaded to location: {local_download_path}')
@@ -82,7 +81,7 @@ class OSWFormat:
     def clean_up(path, download_dir=None):
         if os.path.isfile(path):
             logger.info(f' Removing File: {path}')
-            os.remove(path)
+            # os.remove(path)
         else:
             logger.info(f' Removing Folder: {path}')
             shutil.rmtree(path, ignore_errors=True)
