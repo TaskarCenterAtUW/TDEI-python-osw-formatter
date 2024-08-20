@@ -239,7 +239,6 @@ class OSWFomatterService:
             'data': asdict(response.data)
         })
         self.publishing_topic.publish(data=data)
-        self.publishing_topic.client
         logger.info(f'Finished sending response for {response.data.jobId}')
 
     def upload_to_azure_on_demand(self, remote_path: str, local_url: str):
