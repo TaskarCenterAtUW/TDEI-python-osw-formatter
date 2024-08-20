@@ -1,11 +1,7 @@
-psutil==5.9.5
 fastapi==0.88.0
-python-dotenv==0.21.0
 pydantic==1.10.4
-python-ms-core==0.0.18
+python-ms-core==0.0.21
 uvicorn==0.20.0
-coverage==7.2.7
 html_testRunner==1.2.1
-httpx==0.24.1
-osm-osw-reformatter==0.2.2
+osm-osw-reformatter==0.2.3
 numpy==1.26.4

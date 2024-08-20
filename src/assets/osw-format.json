@@ -1,10 +1,9 @@
 {
   "messageId": "c8c76e89f30944d2b2abd2491bd95337",
-  "messageType": "workflow_identifier ON_DEMAND",
+  "messageType": "workflow_identifier",
   "data": {
-    "sourceUrl": "https://tdeisamplestorage.blob.core.windows.net/osw/2023/11/c552d5d1-0719-4647-b86d-6ae9b25327b7/aff14a0d29ab4acbaef639063462e85b/naresh-som-2.zip",
-    "jobId": "42",
-    "source": "osw",
-    "target": "osm"
+    "user_id": "eb3346d7-b1bc-4342-b56b-97890573da1c",
+    "tdei_project_group_id": "285f0ceb-2816-451d-8140-1e8ed7399993",
+    "file_upload_path": "https://tdeisamplestorage.blob.core.windows.net/osw/test_upload/bbox-intersect-1f68e9ce-4ef2-4054-8042-14fcb287faae.zip"
   }
 }

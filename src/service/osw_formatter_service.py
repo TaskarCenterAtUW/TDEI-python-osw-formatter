@@ -30,7 +30,7 @@ class OSWFomatterService:
         listening_topic_name = self._settings.event_bus.validation_topic or ""
         publishing_topic_name = self._settings.event_bus.formatter_topic or ""
         self.subscription_name = self._settings.event_bus.validation_subscription or ""
-        self.listening_topic = core.get_topic(topic_name=listening_topic_name)
+        self.listening_topic = core.get_topic(topic_name=listening_topic_name, max_concurrent_messages=2)
         self.publishing_topic = core.get_topic(topic_name=publishing_topic_name)
         self.logger = core.get_logger()
         self.storage_client = core.get_storage_client()
@@ -52,25 +52,23 @@ class OSWFomatterService:
                             logger.info("Received on demand request")
                             ondemand_request = OSWOnDemandRequest(messageType=messageType, messageId=message.messageId, data=queue_message['data'])
                             logger.info(ondemand_request)
-                            pthread = threading.Thread(
-                                target=self.process_on_demand_format, args=[ondemand_request]
-                            )
-                            pthread.start()
+                            self.process_on_demand_format(request=ondemand_request)
                         except Exception as e:
                             logger.error(f"Error occurred while processing on demand message, {e}")
-                            self.send_on_demand_response(response= OSWOnDemandResponse(messageId=message.messageId, messageType=message.messageType, data={'status': 'failed', 'message': str(e), 'success': False}))
+                            self.send_on_demand_response(response=OSWOnDemandResponse(messageId=message.messageId,
+                                                                                      messageType=message.messageType,
+                                                                                      data={'status': 'failed',
+                                                                                            'message': str(e),
+                                                                                            'success': False}))
                             return
                         return
                     upload_message = OSWValidationMessage.data_from(queue_message)
                     # Create a thread to process the message asynchronously
-                    process_thread = threading.Thread(
-                        target=self.format, args=[upload_message]
-                    )
-                    process_thread.start()
+                    self.format(received_message=upload_message)
+
             except Exception as e:
                 logger.error(f"Error occurred while processing message, {e}")
                 self.send_status(result=ValidationResult(is_valid=False, validation_message=str(e)), upload_message=upload_message)
-                    
 
         self.listening_topic.subscribe(
             subscription=self.subscription_name, callback=process
@@ -241,6 +239,7 @@ class OSWFomatterService:
             'data': asdict(response.data)
         })
         self.publishing_topic.publish(data=data)
+        self.publishing_topic.client
         logger.info(f'Finished sending response for {response.data.jobId}')
 
     def upload_to_azure_on_demand(self, remote_path: str, local_url: str):
