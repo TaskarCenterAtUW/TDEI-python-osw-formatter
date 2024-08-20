@@ -30,7 +30,7 @@ class OSWFomatterService:
         listening_topic_name = self._settings.event_bus.validation_topic or ""
         publishing_topic_name = self._settings.event_bus.formatter_topic or ""
         self.subscription_name = self._settings.event_bus.validation_subscription or ""
-        self.listening_topic = core.get_topic(topic_name=listening_topic_name, max_concurrent_messages=2)
+        self.listening_topic = core.get_topic(topic_name=listening_topic_name, max_concurrent_messages=self._settings.max_concurrent_messages)
         self.publishing_topic = core.get_topic(topic_name=publishing_topic_name)
         self.logger = core.get_logger()
         self.storage_client = core.get_storage_client()
