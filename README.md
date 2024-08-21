@@ -30,10 +30,13 @@ FORMATTER_TOPIC=xxx
 FORMATTER_SUBSCRIPTION=xxx
 FORMATTER_UPLOAD_TOPIC=xxx
 CONTAINER_NAME=xxx
+MAX_CONCURRENT_MESSAGES=xx
 ```
 
 The application connect with the `STORAGECONNECTION` string provided in `.env` file and validates downloaded zipfile using `python-osw-validation` package.
 `QUEUECONNECTION` is used to send out the messages and listen to messages.
+
+`MAX_CONCURRENT_MESSAGES` is the maximum number of concurrent messages that the service can handle. If not provided, defaults to 2
 
 ## Establishing python env for the project
 Running the code base requires a proper Python environment set up. The following lines of code helps one establish such env named `tdei-osw`. replace `tdei-osw` with the name of your choice.
