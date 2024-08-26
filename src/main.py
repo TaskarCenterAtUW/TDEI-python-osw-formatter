@@ -6,6 +6,7 @@ from src.config import Settings
 from src.service.osw_formatter_service import OSWFomatterService
 
 app = FastAPI()
+app.formatter_service = None
 
 prefix_router = APIRouter(prefix='/health')
 
@@ -25,7 +26,7 @@ async def startup_event(settings: Settings = Depends(get_settings)) -> None:
         dl_directory = set2.get_download_directory()
         if not os.path.exists(dl_directory):
             os.makedirs(dl_directory)
-        OSWFomatterService()
+        app.formatter_service = OSWFomatterService()
         
     except Exception as e:
         print(e)
@@ -43,6 +44,11 @@ async def startup_event(settings: Settings = Depends(get_settings)) -> None:
             child.kill()
         parent.kill()
 
+@app.on_event('shutdown')
+async def shutdown_event() -> None:
+    print('Application is shutting down...')
+    if app.formatter_service:
+        app.formatter_service.stop_listening()
 
 @app.get('/', status_code=status.HTTP_200_OK)
 @prefix_router.get('/', status_code=status.HTTP_200_OK)
