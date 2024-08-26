@@ -15,6 +15,7 @@ from src.models import (
     OSWOnDemandResponse,
 )
 from python_ms_core.core.queue.models.queue_message import QueueMessage
+import threading
 
 logging.basicConfig()
 logger = logging.getLogger("OSW_FORMATTER")
@@ -33,7 +34,8 @@ class OSWFomatterService:
         self.logger = self.core.get_logger()
         self.storage_client = self.core.get_storage_client()
         self.container_name = self._settings.event_bus.container_name
-        self.start_listening()
+        self.listening_thread = threading.Thread(target=self.start_listening)
+        self.listening_thread.start()
         self.download_dir = self._settings.get_download_directory()
         is_exists = os.path.exists(self.download_dir)
         if not is_exists:
@@ -257,3 +259,7 @@ class OSWFomatterService:
         with open(local_url, "rb") as data:
             file.upload(data)
         return file.get_remote_url()
+
+    def stop_listening(self):
+        self.listening_thread.join(timeout=0)
+        return
