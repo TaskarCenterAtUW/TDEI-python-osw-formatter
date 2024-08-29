@@ -39,10 +39,11 @@ class OSWFormat:
         root, ext = os.path.splitext(self.file_relative_path)
         if ext and ext.lower() in AVAILABLE_EXTENSIONS:
             downloaded_file_path = self.download_single_file(self.file_path)
-
+            # get the parent folder for downloaded_file_path
+            unique_download_path = os.path.dirname(downloaded_file_path)
             try:
                 logger.info(f' Downloaded file path: {downloaded_file_path}')
-                formatter = Formatter(workdir=self.download_dir, file_path=downloaded_file_path, prefix=self.prefix)
+                formatter = Formatter(workdir=unique_download_path, file_path=downloaded_file_path, prefix=self.prefix)
                 if ext.lower() == '.zip':
                     formatter_response = formatter.osw2osm()
                 else:
