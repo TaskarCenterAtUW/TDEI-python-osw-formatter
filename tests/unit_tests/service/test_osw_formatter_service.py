@@ -16,7 +16,7 @@ current_dir = os.path.dirname(os.path.abspath(os.path.join(__file__, '../../')))
 parent_dir = os.path.dirname(current_dir)
 
 TEST_JSON_FILE = os.path.join(parent_dir, 'src/assets/osw-upload.json')
-ON_DEMAND_TEST_JSON_FILE = os.path.join(parent_dir, 'src/assets/osw-format.json')
+ON_DEMAND_TEST_JSON_FILE = os.path.join(parent_dir, 'src/assets/osw-format-on-demand-request.json')
 
 TEST_FILE = open(TEST_JSON_FILE)
 TEST_DATA = json.loads(TEST_FILE.read())
@@ -46,6 +46,10 @@ class TestOSWFomatterService(unittest.TestCase):
             self.formatter.logger = MagicMock()
             self.formatter.storage_client = MagicMock()
             self.formatter.container_name = MagicMock()
+            self.formatter.core = MagicMock()
+            self.formatter.core.return_value = MagicMock()
+            self.formatter.core.get_topic = MagicMock()
+            self.formatter.core.get_topic.return_value = MagicMock()
 
     @patch.object(OSWFomatterService, 'start_listening')
     def test_start_listening(self, mock_start_listening):
@@ -267,7 +271,7 @@ class TestOSWFomatterService(unittest.TestCase):
 
         response = OSWOnDemandResponse(messageId=upload_message.messageId, messageType=upload_message.messageType, data=msg)
         self.formatter.send_on_demand_response(response=response)
-        self.formatter.publishing_topic.publish.assert_called_once()
+        self.formatter.core.get_topic().publish.assert_called_once()
 
 
 if __name__ == '__main__':

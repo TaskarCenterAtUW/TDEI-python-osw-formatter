@@ -17,6 +17,7 @@ class EventBusSettings:
 class Settings(BaseSettings):
     app_name: str = 'python-osw-formatter'
     event_bus = EventBusSettings()
+    max_concurrent_messages: int = os.environ.get('MAX_CONCURRENT_MESSAGES', 2)
 
     def get_root_directory(self) -> str:
         return os.path.dirname(os.path.abspath(__file__))

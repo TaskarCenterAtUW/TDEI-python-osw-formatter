@@ -2,7 +2,6 @@ import os
 import time
 import logging
 import traceback
-import threading
 import urllib.parse
 from datetime import datetime
 from src.config import Settings
@@ -16,6 +15,7 @@ from src.models import (
     OSWOnDemandResponse,
 )
 from python_ms_core.core.queue.models.queue_message import QueueMessage
+import threading
 
 logging.basicConfig()
 logger = logging.getLogger("OSW_FORMATTER")
@@ -26,16 +26,16 @@ class OSWFomatterService:
     _settings = Settings()
 
     def __init__(self):
-        core = Core()
+        self.core = Core()
         listening_topic_name = self._settings.event_bus.validation_topic or ""
-        publishing_topic_name = self._settings.event_bus.formatter_topic or ""
         self.subscription_name = self._settings.event_bus.validation_subscription or ""
-        self.listening_topic = core.get_topic(topic_name=listening_topic_name)
-        self.publishing_topic = core.get_topic(topic_name=publishing_topic_name)
-        self.logger = core.get_logger()
-        self.storage_client = core.get_storage_client()
+        self.listening_topic = self.core.get_topic(topic_name=listening_topic_name,
+                                                   max_concurrent_messages=self._settings.max_concurrent_messages)
+        self.logger = self.core.get_logger()
+        self.storage_client = self.core.get_storage_client()
         self.container_name = self._settings.event_bus.container_name
-        self.start_listening()
+        self.listening_thread = threading.Thread(target=self.start_listening)
+        self.listening_thread.start()
         self.download_dir = self._settings.get_download_directory()
         is_exists = os.path.exists(self.download_dir)
         if not is_exists:
@@ -50,27 +50,27 @@ class OSWFomatterService:
                     if "on_demand" in messageType:
                         try:
                             logger.info("Received on demand request")
-                            ondemand_request = OSWOnDemandRequest(messageType=messageType, messageId=message.messageId, data=queue_message['data'])
+                            ondemand_request = OSWOnDemandRequest(messageType=messageType, messageId=message.messageId,
+                                                                  data=queue_message['data'])
                             logger.info(ondemand_request)
-                            pthread = threading.Thread(
-                                target=self.process_on_demand_format, args=[ondemand_request]
-                            )
-                            pthread.start()
+                            self.process_on_demand_format(request=ondemand_request)
                         except Exception as e:
                             logger.error(f"Error occurred while processing on demand message, {e}")
-                            self.send_on_demand_response(response= OSWOnDemandResponse(messageId=message.messageId, messageType=message.messageType, data={'status': 'failed', 'message': str(e), 'success': False}))
+                            self.send_on_demand_response(response=OSWOnDemandResponse(messageId=message.messageId,
+                                                                                      messageType=message.messageType,
+                                                                                      data={'status': 'failed',
+                                                                                            'message': str(e),
+                                                                                            'success': False}))
                             return
                         return
                     upload_message = OSWValidationMessage.data_from(queue_message)
                     # Create a thread to process the message asynchronously
-                    process_thread = threading.Thread(
-                        target=self.format, args=[upload_message]
-                    )
-                    process_thread.start()
+                    self.format(received_message=upload_message)
+
             except Exception as e:
                 logger.error(f"Error occurred while processing message, {e}")
-                self.send_status(result=ValidationResult(is_valid=False, validation_message=str(e)), upload_message=upload_message)
-                    
+                self.send_status(result=ValidationResult(is_valid=False, validation_message=str(e)),
+                                 upload_message=upload_message)
 
         self.listening_topic.subscribe(
             subscription=self.subscription_name, callback=process
@@ -102,8 +102,8 @@ class OSWFomatterService:
                 result = formatter.format()
                 formatter_result = ValidationResult()
                 if result and result.status and result.error is None and result.generated_files is not None:
-                    # Generated files can be .xml or bunch of geojson
-                    if isinstance(result.generated_files, list): # If its a list
+                    # Generated files can be .xml or a bunch of geojson
+                    if isinstance(result.generated_files, list):  # If it's a list
                         converted_file = formatter.create_zip(result.generated_files)
                     else:
                         converted_file = result.generated_files
@@ -177,10 +177,12 @@ class OSWFomatterService:
             }
         )
         try:
-            self.publishing_topic.publish(data=data)
+            publishing_topic_name = self._settings.event_bus.formatter_topic or ""
+            publishing_topic = self.core.get_topic(topic_name=publishing_topic_name)
+            publishing_topic.publish(data=data)
+            logger.info(f"Publishing message for : {upload_message.message_id}")
         except Exception as e:
-            logger.error(e)
-        logger.info(f"Publishing message for : {upload_message.message_id}")
+            logger.error(f"Failed to publishing message for : {upload_message.message_id} reason : {e}")
 
     def process_on_demand_format(self, request: OSWOnDemandRequest):
         try:
@@ -201,7 +203,7 @@ class OSWFomatterService:
             # Create remote path
             if result and result.status and result.error is None and result.generated_files is not None:
                 logger.info('Formatting complete')
-                if isinstance(result.generated_files, list): # If its a list
+                if isinstance(result.generated_files, list):  # If its a list
                     converted_file = formatter.create_zip(result.generated_files)
                 else:
                     converted_file = result.generated_files
@@ -210,10 +212,10 @@ class OSWFomatterService:
                 target_file_remote_path = f'{target_directory}/{os.path.basename(converted_file)}'
 
                 new_file_remote_url = self.upload_to_azure_on_demand(remote_path=target_file_remote_path,
-                                                                    local_url=converted_file)
+                                                                     local_url=converted_file)
 
                 logger.info(f'File to be uploaded to: {target_file_remote_path}')
-                
+
                 OSWFormat.clean_up(converted_file)
 
                 osw_response['status'] = 'completed'
@@ -226,12 +228,15 @@ class OSWFomatterService:
                 osw_response['message'] = result.error
                 osw_response['success'] = False
 
-            response = OSWOnDemandResponse(messageId=request.messageId, messageType=request.messageType, data=osw_response)
+            response = OSWOnDemandResponse(messageId=request.messageId, messageType=request.messageType,
+                                           data=osw_response)
 
-            self.send_on_demand_response(response= response)
+            self.send_on_demand_response(response=response)
         except Exception as e:
             logger.error(f"Error occurred while processing on demand message, {e}")
-            self.send_on_demand_response(response= OSWOnDemandResponse(messageId=request.messageId, messageType=request.messageType, data={'status': 'failed', 'message': str(e), 'success': False}))
+            self.send_on_demand_response(
+                response=OSWOnDemandResponse(messageId=request.messageId, messageType=request.messageType,
+                                             data={'status': 'failed', 'message': str(e), 'success': False}))
 
     def send_on_demand_response(self, response: OSWOnDemandResponse):
         logger.info(f"Sending response for {response.data.jobId}")
@@ -240,8 +245,11 @@ class OSWFomatterService:
             "messageType": response.messageType,
             'data': asdict(response.data)
         })
-        self.publishing_topic.publish(data=data)
+        publishing_topic_name = self._settings.event_bus.formatter_topic or ""
+        publishing_topic = self.core.get_topic(topic_name=publishing_topic_name)
+        publishing_topic.publish(data=data)
         logger.info(f'Finished sending response for {response.data.jobId}')
+        # ret
 
     def upload_to_azure_on_demand(self, remote_path: str, local_url: str):
         container = self.storage_client.get_container(
@@ -251,3 +259,7 @@ class OSWFomatterService:
         with open(local_url, "rb") as data:
             file.upload(data)
         return file.get_remote_url()
+
+    def stop_listening(self):
+        self.listening_thread.join(timeout=0)
+        return
