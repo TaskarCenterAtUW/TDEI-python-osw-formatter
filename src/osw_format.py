@@ -9,6 +9,8 @@ import traceback
 from .config import Settings
 from osm_osw_reformatter import Formatter
 import uuid
+import urllib.parse
+import wget
 
 logging.basicConfig()
 logger = logging.getLogger('osw-formatter')
@@ -66,26 +68,54 @@ class OSWFormat:
             raise Exception('Unknown file format')
 
     def download_single_file(self, file_upload_path=None) -> str:
-        file = self.storage_client.get_file_from_url(self.container_name, file_upload_path)
+        logger.info(f' Downloading file from path: {file_upload_path}')
+        start_time = time.time()
+        # file = self.storage_client.get_file_from_url(self.container_name, file_upload_path)
+        file_relative_path = self.get_relative_path(file_upload_path)
+        file_sas_url = self.storage_client.get_sas_url(container_name=self.container_name, file_path= file_relative_path,expiry_hours=1)
+        # file_download_url = self.storage_client.get_sas_url(self.container_name, file_upload_path)
+        logger.info(f' File SAS URL: {file_sas_url}')
         try:
-            if file.file_path:
-                file_path = os.path.basename(file.file_path)
+            if file_sas_url:
+                file_path = os.path.basename(file_upload_path)
                 unique_id = self.get_unique_id()
                 unique_directory = os.path.join(self.download_dir, unique_id)
                 if not os.path.exists(unique_directory):
                     os.makedirs(unique_directory)
                 local_download_path = os.path.join(unique_directory, file_path)
-
-                with open(local_download_path, 'wb') as blob:
-                    blob.write(file.get_stream())
+                
+                # download file using wget
+                wget.download(file_sas_url, local_download_path)
+                # with open(local_download_path, 'wb') as blob:
+                    # blob.write(file.get_stream())
 
                 logger.info(f' File downloaded to location: {local_download_path}')
+                end_time = time.time()
+                logger.info(f' Time taken to download: {end_time - start_time}')
                 return local_download_path
             else:
-                logger.info(' File not found!')
+                logger.info(' Could not get SAS url for file!')
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
+    
+    
+    def get_relative_path(self,full_path:str)-> str|None:
+        """
+        Get the relative path from a full path
+        """
+        try:
+            # get the result after the first slash
+            full_url = urllib.parse.urlparse(full_path)
+            url_base_path = full_url.path
+            # get the result after the first slash
+            relative_path = url_base_path.split('/')[2:]
+            # join parts by `/`
+            relative_path = '/'.join(relative_path)
+            return relative_path
+        except Exception as e:
+            logger.error(f"Error while getting relative path: {str(e)}")
+            return None
 
     @staticmethod
     def clean_up(path, download_dir=None):

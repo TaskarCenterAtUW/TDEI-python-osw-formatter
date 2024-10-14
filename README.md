@@ -216,3 +216,7 @@ The format is mentioned in [osw-upload.json](./src/assets/osw-upload.json)
 The outgoing messages will be to the `osw-validation` topic.
 The format of the message is at [osw-format.json](./src/assets/osw-format.json)
 
+# Run locally
+
+ docker run --env-file .env --memory=8192m --cpus=0.5 -t osw-formatter-local
+ docker build -t osw-formatter-local .
