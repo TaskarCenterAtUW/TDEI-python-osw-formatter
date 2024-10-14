@@ -32,7 +32,7 @@ class TestOSWFormatterService(unittest.TestCase):
         mock_message = MagicMock()
         mock_queue_message.to_dict.return_value = {'messageId': '1234', 'data': {'jobId': '5678'}}
         mock_request_message.from_dict.return_value = mock_request_message
-        self.service.process = MagicMock()
+        self.service.format = MagicMock()
 
         # Act
         self.service.start_listening()
@@ -40,7 +40,7 @@ class TestOSWFormatterService(unittest.TestCase):
         callback(mock_message)
 
         # Assert
-        self.service.process.assert_called_once_with(mock_request_message)
+        self.service.format.assert_called_once_with(received_message=mock_request_message.data_from())
 
     @patch('src.service.osw_formatter_service.QueueMessage')
     @patch('src.service.osw_formatter_service.OSWValidationMessage')
@@ -49,7 +49,7 @@ class TestOSWFormatterService(unittest.TestCase):
         mock_message = MagicMock()
         mock_queue_message.to_dict.return_value = {'messageId': '1234', 'messageType': 'on_demand', 'data': {'jobId': '5678'}}
         mock_request_message.from_dict.return_value = mock_request_message
-        self.service.process = MagicMock()
+        self.service.format = MagicMock()
 
         # Act
         self.service.start_listening()
@@ -57,7 +57,7 @@ class TestOSWFormatterService(unittest.TestCase):
         callback(mock_message)
 
         # Assert
-        self.service.process.assert_called_once_with(mock_request_message)
+        self.service.format.assert_called_once_with(received_message=mock_request_message.data_from())
 
 
 if __name__ == '__main__':
