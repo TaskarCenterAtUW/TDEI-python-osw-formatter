@@ -18,6 +18,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Setup Virtual Environment
+      run: |
+        sudo apt update 
+        sudo apt install gdal-bin libgdal-dev python3-gdal
+
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
@@ -26,6 +31,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install GDAL==3.4.1
         pip install -r requirements.txt
 
     - name: Run tests with coverage
