@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 import logging
@@ -47,20 +48,28 @@ class OSWFomatterService:
                 if message is not None:
                     queue_message = QueueMessage.to_dict(message)
                     messageType = message.messageType.lower()
-                    if "on_demand" in messageType:
+                    if 'on_demand' in messageType:
                         try:
-                            logger.info("Received on demand request")
-                            ondemand_request = OSWOnDemandRequest(messageType=messageType, messageId=message.messageId,
-                                                                  data=queue_message['data'])
-                            logger.info(ondemand_request)
+                            ondemand_request = OSWOnDemandRequest(
+                                messageType=messageType,
+                                messageId=message.messageId,
+                                data=queue_message['data']
+                            )
+                            logger.info(f'Received on demand request: {ondemand_request.data.jobId}')
                             self.process_on_demand_format(request=ondemand_request)
                         except Exception as e:
                             logger.error(f"Error occurred while processing on demand message, {e}")
-                            self.send_on_demand_response(response=OSWOnDemandResponse(messageId=message.messageId,
-                                                                                      messageType=message.messageType,
-                                                                                      data={'status': 'failed',
-                                                                                            'message': str(e),
-                                                                                            'success': False}))
+                            self.send_on_demand_response(
+                                response=OSWOnDemandResponse(
+                                    messageId=message.messageId,
+                                    messageType=message.messageType,
+                                    data={
+                                        'status': 'failed',
+                                        'message': str(e),
+                                        'success': False
+                                    }
+                                )
+                            )
                             return
                         return
                     upload_message = OSWValidationMessage.data_from(queue_message)
@@ -81,9 +90,7 @@ class OSWFomatterService:
         try:
             tdei_record_id = received_message.message_id
 
-            logger.info(
-                f"Received message for: {tdei_record_id} Message received for formatting !"
-            )
+            logger.info(f'Received message for: {tdei_record_id} Message received for formatting !')
 
             if received_message.data.file_upload_path is None:
                 error_msg = "Request does not have a valid file path specified."
@@ -107,15 +114,14 @@ class OSWFomatterService:
                         converted_file = formatter.create_zip(result.generated_files)
                     else:
                         converted_file = result.generated_files
-                    upload_path = self.upload_to_azure(file_path=converted_file,
-                                                       project_group_id=received_message.data.tdei_project_group_id,
-                                                       record_id=tdei_record_id)
-                    formatter_result.is_valid = True
-                    formatter_result.validation_message = (
-                        "Formatting Successful!"
+                    upload_path = self.upload_to_azure(
+                        file_path=converted_file,
+                        project_group_id=received_message.data.tdei_project_group_id,
+                        record_id=tdei_record_id
                     )
-                    
-                    OSWFormat.clean_up(converted_file)
+                    formatter_result.is_valid = True
+                    formatter_result.validation_message = 'Formatting Successful!'
+
                     self.send_status(
                         result=formatter_result,
                         upload_message=received_message,
@@ -123,26 +129,23 @@ class OSWFomatterService:
                     )
                 else:
                     formatter_result.is_valid = False
-                    formatter_result.validation_message = "Could not format OSW to OSM or OSM to OSW"
-                    logger.error(
-                        f"error status : {result.status}, error details : {result.error}"
-                    )
+                    formatter_result.validation_message = 'Could not format OSW to OSM or OSM to OSW'
+                    logger.error(f'error status : {result.status}, error details : {result.error}')
                     self.send_status(
-                        result=formatter_result, upload_message=received_message
+                        result=formatter_result,
+                        upload_message=received_message
                     )
             else:
                 raise Exception('File entity not found')
         except Exception as e:
-            logger.error(
-                f"{tdei_record_id} Error occurred while formatting OSW request, {e}"
-            )
+            logger.error(f'{tdei_record_id} Error occurred while formatting OSW request, {e}')
             result = ValidationResult()
             result.is_valid = False
-            result.validation_message = (
-                f"Error occurred while formatting OSW request {e}"
-            )
+            result.validation_message = f'Error occurred while formatting OSW request {e}'
             self.send_status(result=result, upload_message=received_message)
             traceback.print_exc()
+        finally:
+            OSWFormat.clean_up(f'{self.download_dir}/{received_message.message_id}')
 
     def upload_to_azure(self, file_path=None, project_group_id=None, record_id=None):
         try:
@@ -183,14 +186,11 @@ class OSWFomatterService:
             logger.info(f"Publishing message for : {upload_message.message_id}")
         except Exception as e:
             logger.error(f"Failed to publishing message for : {upload_message.message_id} reason : {e}")
+        finally:
+            gc.collect()
 
     def process_on_demand_format(self, request: OSWOnDemandRequest):
         try:
-            logger.info("Received on demand request")
-            logger.info(request.data.jobId)
-            logger.info(request.data.sourceUrl)
-            logger.info(request.data.source)
-            logger.info(request.data.target)
             # Format the file
             formatter = OSWFormat(
                 file_path=request.data.sourceUrl,
@@ -198,7 +198,6 @@ class OSWFomatterService:
                 prefix=request.data.jobId
             )
             result = formatter.format()
-            formatter_result = ValidationResult()
             osw_response = asdict(request.data)
             # Create remote path
             if result and result.status and result.error is None and result.generated_files is not None:
@@ -211,12 +210,12 @@ class OSWFomatterService:
                 target_directory = f'jobs/{request.data.jobId}/{request.data.target}'
                 target_file_remote_path = f'{target_directory}/{os.path.basename(converted_file)}'
 
-                new_file_remote_url = self.upload_to_azure_on_demand(remote_path=target_file_remote_path,
-                                                                     local_url=converted_file)
+                new_file_remote_url = self.upload_to_azure_on_demand(
+                    remote_path=target_file_remote_path,
+                    local_url=converted_file
+                )
 
                 logger.info(f'File to be uploaded to: {target_file_remote_path}')
-
-                OSWFormat.clean_up(converted_file)
 
                 osw_response['status'] = 'completed'
                 osw_response['formattedUrl'] = new_file_remote_url
@@ -233,10 +232,20 @@ class OSWFomatterService:
 
             self.send_on_demand_response(response=response)
         except Exception as e:
-            logger.error(f"Error occurred while processing on demand message, {e}")
+            logger.error(f'Error occurred while processing on demand message, {e}')
             self.send_on_demand_response(
-                response=OSWOnDemandResponse(messageId=request.messageId, messageType=request.messageType,
-                                             data={'status': 'failed', 'message': str(e), 'success': False}))
+                response=OSWOnDemandResponse(
+                    messageId=request.messageId,
+                    messageType=request.messageType,
+                    data={
+                        'status': 'failed',
+                        'message': str(e),
+                        'success': False}
+                )
+            )
+        finally:
+            OSWFormat.clean_up(f'{self.download_dir}/{request.data.jobId}')
+            gc.collect()
 
     def send_on_demand_response(self, response: OSWOnDemandResponse):
         logger.info(f"Sending response for {response.data.jobId}")
@@ -249,6 +258,7 @@ class OSWFomatterService:
         publishing_topic = self.core.get_topic(topic_name=publishing_topic_name)
         publishing_topic.publish(data=data)
         logger.info(f'Finished sending response for {response.data.jobId}')
+        gc.collect()
         # ret
 
     def upload_to_azure_on_demand(self, remote_path: str, local_url: str):
