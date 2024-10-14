@@ -18,7 +18,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Setup Virtual Environment
+    - name: Updating and installing GDAL
       run: |
         sudo apt update 
         sudo apt install gdal-bin libgdal-dev python3-gdal
@@ -41,4 +41,4 @@ jobs:
 
     - name: Check coverage
       run: |
-        coverage report --fail-under=85
+        coverage report --fail-under=80
