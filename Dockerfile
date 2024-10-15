@@ -13,7 +13,8 @@ COPY ./requirements.txt /code/requirements.txt
 
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-RUN pip install git+https://github.com/TaskarCenterAtUW/TDEI-python-ms-core@feature-testing-from-branch
+# RUN pip install git+https://github.com/TaskarCenterAtUW/TDEI-python-ms-core@feature-testing-from-branch
+RUN pip install git+https://github.com/TaskarCenterAtUW/TDEI-python-ms-core@8c5e11e5e5560ac6853416f47507ee4c94992de4
 
 COPY ./src /code/src
 EXPOSE 8080

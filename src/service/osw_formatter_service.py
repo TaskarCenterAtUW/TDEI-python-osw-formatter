@@ -17,6 +17,7 @@ from src.models import (
 )
 from python_ms_core.core.queue.models.queue_message import QueueMessage
 import threading
+import sys
 
 logging.basicConfig()
 logger = logging.getLogger("OSW_FORMATTER")
@@ -25,6 +26,23 @@ logger.setLevel(logging.INFO)
 
 class OSWFomatterService:
     _settings = Settings()
+
+    def enable_sb_logging(self):
+         azure_logger = logging.getLogger("azure")
+         if not azure_logger.handlers:
+            azure_logger.setLevel(logging.INFO)
+            handler = logging.StreamHandler(stream=sys.stdout)
+            handler.setFormatter(logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s'))
+            azure_logger.addHandler(handler)
+
+            uamqp_logger = logging.getLogger("uamqp")
+            if not uamqp_logger.handlers:
+                uamqp_logger.setLevel(logging.INFO)
+                uamqp_logger.addHandler(handler)
+                handler = logging.StreamHandler(stream=sys.stdout)
+                logger = logging.getLogger('azure.servicebus')
+                logger.setLevel(logging.WARN)
+                logger.addHandler(handler)
 
     def __init__(self):
         self.core = Core()
@@ -39,6 +57,7 @@ class OSWFomatterService:
         self.listening_thread.start()
         self.download_dir = self._settings.get_download_directory()
         is_exists = os.path.exists(self.download_dir)
+        self.enable_sb_logging()
         if not is_exists:
             os.makedirs(self.download_dir)
 
@@ -114,14 +133,16 @@ class OSWFomatterService:
                         converted_file = formatter.create_zip(result.generated_files)
                     else:
                         converted_file = result.generated_files
+                    logger.info(f'Trying to upload')
                     upload_path = self.upload_to_azure(
                         file_path=converted_file,
                         project_group_id=received_message.data.tdei_project_group_id,
                         record_id=tdei_record_id
                     )
+                    logger.info(f'File uploaded to: {upload_path}')
                     formatter_result.is_valid = True
                     formatter_result.validation_message = 'Formatting Successful!'
-
+                    logger.info(f'Sending status back')
                     self.send_status(
                         result=formatter_result,
                         upload_message=received_message,
@@ -162,6 +183,7 @@ class OSWFomatterService:
             if record_id:
                 filename = f"{filename}/{record_id}"
             filename = f'{filename}/{updated_filename}'
+            logger.info(f'Uploading file to: {filename}')
             return self.upload_to_azure_on_demand(remote_path=filename, local_url=file_path)
         except Exception as e:
             logger.error(e)
@@ -187,7 +209,8 @@ class OSWFomatterService:
         except Exception as e:
             logger.error(f"Failed to publishing message for : {upload_message.message_id} reason : {e}")
         finally:
-            gc.collect()
+            # gc.collect()
+            logger.info(f"Finished processing message")
 
     def process_on_demand_format(self, request: OSWOnDemandRequest):
         try:
