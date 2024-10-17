@@ -34,7 +34,10 @@ class OSWFormat:
         self.file_path = file_path
         self.file_relative_path = file_path.split('/')[-1]
         self.client = self.storage_client.get_container(container_name=self.container_name)
-        self.prefix = prefix
+        if prefix:
+            self.prefix = prefix
+        else:
+            self.prefix = self.get_unique_id()
 
     def format(self):
         start_time = time.time()
@@ -70,8 +73,7 @@ class OSWFormat:
         try:
             if file.file_path:
                 file_path = os.path.basename(file.file_path)
-                unique_id = self.get_unique_id()
-                unique_directory = os.path.join(self.download_dir, unique_id)
+                unique_directory = os.path.join(self.download_dir, self.prefix)
                 if not os.path.exists(unique_directory):
                     os.makedirs(unique_directory)
                 local_download_path = os.path.join(unique_directory, file_path)
@@ -98,7 +100,8 @@ class OSWFormat:
         gc.collect()
 
     def create_zip(self, files):
-        zip_filename = os.path.join(self.download_dir, f'{self.prefix}.zip')
+        dir_path = os.path.join(self.download_dir, self.prefix)
+        zip_filename = os.path.join(dir_path, f'{self.prefix}.zip')
         with zipfile.ZipFile(zip_filename, 'w') as zip_file:
             for file in files:
                 # Add each file to the zip file

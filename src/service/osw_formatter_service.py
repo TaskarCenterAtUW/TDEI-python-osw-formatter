@@ -130,7 +130,7 @@ class OSWFomatterService:
                 else:
                     formatter_result.is_valid = False
                     formatter_result.validation_message = 'Could not format OSW to OSM or OSM to OSW'
-                    logger.error(f'error status : {result.status}, error details : {result.error}')
+                    logger.error(f'Error status: {result.status}, Error details: {result.error}')
                     self.send_status(
                         result=formatter_result,
                         upload_message=received_message
@@ -146,6 +146,7 @@ class OSWFomatterService:
             traceback.print_exc()
         finally:
             OSWFormat.clean_up(f'{self.download_dir}/{received_message.message_id}')
+            gc.collect()
 
     def upload_to_azure(self, file_path=None, project_group_id=None, record_id=None):
         try:
@@ -273,3 +274,9 @@ class OSWFomatterService:
     def stop_listening(self):
         self.listening_thread.join(timeout=0)
         return
+
+
+
+
+
+
