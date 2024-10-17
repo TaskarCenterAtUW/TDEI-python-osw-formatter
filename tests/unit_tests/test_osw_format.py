@@ -114,6 +114,9 @@ class TestOSMFormat(unittest.TestCase):
                 f.write(f'Test content for file {i}')
             file_paths.append(file_path)
 
+        self.formatter.prefix = '123'
+
+        os.makedirs(os.path.join(self.formatter.download_dir, self.formatter.prefix), exist_ok=True)
         zip_filename = self.formatter.create_zip(file_paths)
         self.assertTrue(os.path.isfile(zip_filename))
 
@@ -142,6 +145,7 @@ class TestOSWFormatDownload(unittest.TestCase):
         file_upload_path = DOWNLOAD_FILE_PATH
         self.formatter.storage_client = MagicMock()
         self.formatter.storage_client.get_file_from_url = MagicMock()
+        self.formatter.prefix = 'test'
         file = MagicMock()
         file.file_path = 'text_file.txt'
         file.get_stream = MagicMock(return_value=b'file_content')
@@ -151,9 +155,7 @@ class TestOSWFormatDownload(unittest.TestCase):
         # Act
         result = self.formatter.download_single_file(file_upload_path=file_upload_path)
 
-        
-
-        expected_file_path = f'{self.formatter.download_dir}/abc/text_file.txt'
+        expected_file_path = f'{self.formatter.download_dir}/test/text_file.txt'
         file.get_stream.assert_called_once()
         # Assert
         with open(expected_file_path, 'rb') as file:
@@ -188,7 +190,7 @@ class TesOSWFormatCleanUp(unittest.TestCase):
 
     def test_clean_up_folder_exists(self):
         folder_path = f'{DOWNLOAD_FILE_PATH}/test'
-        os.makedirs(folder_path)
+        os.makedirs(folder_path, exist_ok=True)
         OSWFormat.clean_up(folder_path, DOWNLOAD_FILE_PATH)
         self.assertFalse(os.path.exists(folder_path))
 
