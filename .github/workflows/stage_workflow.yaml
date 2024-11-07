@@ -24,7 +24,7 @@ jobs:
           docker push ${{ secrets.REGISTRY_DOMAIN }}/${{ secrets.REGISTRY_REPO }} --all-tags
   Deploy:
     needs: Build
-    environment: 
+    environment:
       name: Stage
     runs-on: ubuntu-latest
     steps:
