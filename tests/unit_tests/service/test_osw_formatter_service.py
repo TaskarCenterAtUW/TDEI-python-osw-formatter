@@ -50,6 +50,7 @@ class TestOSWFomatterService(unittest.TestCase):
             self.formatter.core.return_value = MagicMock()
             self.formatter.core.get_topic = MagicMock()
             self.formatter.core.get_topic.return_value = MagicMock()
+            self.formatter.download_dir = DOWNLOAD_PATH
 
     @patch.object(OSWFomatterService, 'start_listening')
     def test_start_listening(self, mock_start_listening):
