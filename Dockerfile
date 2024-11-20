@@ -3,7 +3,8 @@ FROM python:3.10
 RUN apt-get update && apt-get  install -y \
         gdal-bin \
         libgdal-dev \
-        python3-gdal
+        python3-gdal \
+        cmake
 
 WORKDIR /code
 
