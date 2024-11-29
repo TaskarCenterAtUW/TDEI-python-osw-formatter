@@ -79,7 +79,7 @@ class OSWFomatterService:
             except Exception as e:
                 logger.error(f"Error occurred while processing message, {e}")
                 self.send_status(result=ValidationResult(is_valid=False, validation_message=str(e)),
-                                 upload_message=upload_message)
+                                 upload_message=message)
 
         self.listening_topic.subscribe(
             subscription=self.subscription_name, callback=process
@@ -241,7 +241,9 @@ class OSWFomatterService:
                     data={
                         'status': 'failed',
                         'message': str(e),
-                        'success': False}
+                        'success': False,
+                        'jobId': request.data.jobId
+                    }
                 )
             )
         finally:
@@ -274,9 +276,3 @@ class OSWFomatterService:
     def stop_listening(self):
         self.listening_thread.join(timeout=0)
         return
-
-
-
-
-
-

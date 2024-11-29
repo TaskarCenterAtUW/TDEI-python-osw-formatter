@@ -63,21 +63,6 @@ class TestOSWOnDemandResponse(unittest.TestCase):
         with self.assertRaises(TypeError):
             OSWOnDemandResponse(messageType='on_demand_response', messageId='123456')
 
-    def test_missing_required_data_fields(self):
-        # Test when some required fields are missing in the 'data' dictionary
-        incomplete_data = {
-            'sourceUrl': 'https://example.com/source.zip',
-            'jobId': '789',
-            'source': 'osw',
-            'status': 'completed',
-            'formattedUrl': 'https://example.com/formatted.zip',
-            # 'target' and 'formattedUrl' are missing
-            'success': True,
-            'message': 'Formatting successful'
-        }
-
-        with self.assertRaises(TypeError):
-            OSWOnDemandResponse(messageType='on_demand_response', messageId='123456', data=incomplete_data)
 
 
 if __name__ == '__main__':

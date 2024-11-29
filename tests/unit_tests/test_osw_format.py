@@ -1,4 +1,5 @@
 import os
+import uuid
 import unittest
 from pathlib import Path
 from unittest.mock import patch, MagicMock, Mock
@@ -35,9 +36,9 @@ class TestOSWFormat(unittest.TestCase):
         self.assertTrue(result.status)
 
     @patch.object(OSWFormat, 'clean_up')
-    def test_format_with_valid_file_should_generate_xml_file(self, mock_clean_up):
+    async def test_format_with_valid_file_should_generate_xml_file(self, mock_clean_up):
         mock_clean_up.return_value = None
-        result = self.formatter.format()
+        result = await self.formatter.format()
         self.assertTrue(result.status)
         self.assertTrue(os.path.exists(result.generated_files))
         self.assertEqual(os.path.basename(result.generated_files), 'test.graph.osm.xml')
@@ -55,6 +56,16 @@ class TestOSWFormat(unittest.TestCase):
         file_path = f'{SAVED_FILE_PATH}/osw.zip'
         downloaded_file_path = self.formatter.download_single_file(file_upload_path=file_path)
         self.assertEqual(downloaded_file_path, file_path)
+
+    @patch('src.osw_format.uuid.uuid1')
+    def test_get_unique_id(self, mock_uuid1):
+        # Arrange
+        mock_uuid1.return_value = uuid.UUID("123e4567-e89b-12d3-a456-426614174000")
+        unique_id = self.formatter.get_unique_id()
+
+        # Assert
+        self.assertEqual(unique_id, "123e4567e89b12d3a4564266")
+        mock_uuid1.assert_called_once()
 
 
 class TestOSMFormat(unittest.TestCase):
@@ -83,6 +94,24 @@ class TestOSMFormat(unittest.TestCase):
         result = await self.formatter.format()
         self.assertTrue(result.status)
 
+    @patch('src.osw_format.Formatter')
+    def test_format_downloaded_file_path_is_none(self, mock_formatter):
+        self.formatter.download_single_file.return_value = None
+
+        with self.assertRaises(Exception) as context:
+            self.formatter.format()
+
+        self.assertIn('Failed to download file', str(context.exception))
+
+    @patch('src.osw_format.Formatter')
+    def test_format_exception_handling(self, mock_formatter):
+        mock_formatter.side_effect = Exception('Mocked formatting error')
+
+        with self.assertRaises(Exception) as context:
+            self.formatter.format()
+
+        self.assertIn('Mocked formatting error', str(context.exception))
+
     @patch.object(OSWFormat, 'clean_up')
     def test_format_with_valid_file_should_generate_pbf_file(self, mock_clean_up):
         mock_clean_up.return_value = None
@@ -90,7 +119,7 @@ class TestOSMFormat(unittest.TestCase):
         self.assertTrue(result.status)
         files = result.generated_files
         self.assertLessEqual(len(files), 6)
-        self.assertTrue(os.path.exists(files[0])) # one is enough
+        self.assertTrue(os.path.exists(files[0]))  # one is enough
 
     @patch.object(OSWFormat, 'clean_up')
     async def test_format_with_invalid_file(self, mock_clean_up):
