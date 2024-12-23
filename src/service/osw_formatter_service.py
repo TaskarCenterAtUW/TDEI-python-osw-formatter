@@ -17,6 +17,7 @@ from src.models import (
 )
 from python_ms_core.core.queue.models.queue_message import QueueMessage
 import threading
+import osm_osw_reformatter
 
 logging.basicConfig()
 logger = logging.getLogger("OSW_FORMATTER")
@@ -173,11 +174,18 @@ class OSWFomatterService:
         upload_message.data.message = result.validation_message
         if upload_url:
             upload_message.data.formatted_url = upload_url
+
+        resp_data = upload_message.data.to_json()
+        resp_data['package'] = {
+            'python-ms-core': Core.__version__,
+            'osm-osw-reformatter': osm_osw_reformatter.__version__
+
+        }
         data = QueueMessage.data_from(
             {
-                "messageId": upload_message.message_id,
-                "messageType": upload_message.message_type,
-                "data": upload_message.data.to_json(),
+                'messageId': upload_message.message_id,
+                'messageType': upload_message.message_type,
+                'data': resp_data
             }
         )
         try:
@@ -252,10 +260,17 @@ class OSWFomatterService:
 
     def send_on_demand_response(self, response: OSWOnDemandResponse):
         logger.info(f"Sending response for {response.data.jobId}")
+        resp_data = asdict(response.data)
+        resp_data['package'] = {
+            'python-ms-core': Core.__version__,
+            'osm-osw-reformatter': osm_osw_reformatter.__version__
+
+        }
+
         data = QueueMessage.data_from({
             "messageId": response.messageId,
             "messageType": response.messageType,
-            'data': asdict(response.data)
+            'data': resp_data
         })
         publishing_topic_name = self._settings.event_bus.formatter_topic or ""
         publishing_topic = self.core.get_topic(topic_name=publishing_topic_name)
