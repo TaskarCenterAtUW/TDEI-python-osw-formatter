@@ -114,7 +114,7 @@ class OSWFomatterService:
                     if isinstance(result.generated_files, list):  # If it's a list
                         converted_file = formatter.create_zip(result.generated_files)
                     else:
-                        converted_file = result.generated_files
+                        converted_file = formatter.create_zip([result.generated_files])
                     upload_path = self.upload_to_azure(
                         file_path=converted_file,
                         project_group_id=received_message.data.tdei_project_group_id,
@@ -214,7 +214,7 @@ class OSWFomatterService:
                 if isinstance(result.generated_files, list):  # If its a list
                     converted_file = formatter.create_zip(result.generated_files)
                 else:
-                    converted_file = result.generated_files
+                    converted_file = formatter.create_zip([result.generated_files])
 
                 target_directory = f'jobs/{request.data.jobId}/{request.data.target}'
                 target_file_remote_path = f'{target_directory}/{os.path.basename(converted_file)}'
