@@ -66,15 +66,15 @@ class TestOSWFomatterService(unittest.TestCase):
         # Set up mock data
         file_path = f'{SAVED_FILE_PATH}/osw.zip'
         # Mock OSWFormat instance
-        with patch.object(OSWFormat, '__init__', return_value=None):
+        with patch.object(OSWFormat, '__init__', return_value=None), \
+                patch.object(OSWFormat, 'format', return_value=Mock(status=True, error=None, generated_files='file1.xml')), \
+                patch.object(OSWFormat, 'create_zip', return_value='file1.zip') as mock_create_zip:
             self.OSW_format = OSWFormat(file_path=file_path, storage_client=MagicMock())
             self.OSW_format.file_path = MagicMock()
             self.OSW_format.file_path.return_value = Mock(file_path)
             self.OSW_format.file_relative_path = MagicMock()
             self.OSW_format.file_relative_path.return_value = Mock(file_path.split('/')[-1])
             mock_download_single_file.return_value = f'{DOWNLOAD_PATH}/osw.zip'
-            self.OSW_format.format = MagicMock()
-            self.OSW_format.format.return_value = Mock(status=True, error=None, generated_files='file1.xml')
 
             # Arrange
         received_message = OSWValidationMessage(data=TEST_DATA)
@@ -89,6 +89,7 @@ class TestOSWFomatterService(unittest.TestCase):
 
         # Assert
         mock_send_status.assert_called_once()
+        mock_create_zip.assert_called_once_with(['file1.xml'])
 
     @patch.object(OSWFomatterService, 'send_status')
     def test_format_failure(self, mock_send_status):
@@ -96,10 +97,10 @@ class TestOSWFomatterService(unittest.TestCase):
         file_path = f'{SAVED_FILE_PATH}/osw.zip'
 
         # Mock OSWFormat instance
-        with patch.object(OSWFormat, '__init__', return_value=None):
+        with patch.object(OSWFormat, '__init__', return_value=None), \
+                patch.object(OSWFormat, 'format', return_value=Mock(status=True, error=None, generated_files='file1.xml')), \
+                patch.object(OSWFormat, 'create_zip', return_value='file1.zip'):
             self.OSW_format = OSWFormat(file_path=file_path, storage_client=MagicMock())
-            self.OSW_format.format = MagicMock()
-            self.OSW_format.format.return_value = Mock(status=True, error=None, generated_files='file1.xml')
 
             # Arrange
             received_message = OSWValidationMessage(data=TEST_DATA)
@@ -121,10 +122,10 @@ class TestOSWFomatterService(unittest.TestCase):
         file_path = f'{SAVED_FILE_PATH}/osw.zip'
 
         # Mock OSWFormat instance
-        with patch.object(OSWFormat, '__init__', return_value=None):
+        with patch.object(OSWFormat, '__init__', return_value=None), \
+                patch.object(OSWFormat, 'format', return_value=Mock(status=True, error=None, generated_files='file1.xml')), \
+                patch.object(OSWFormat, 'create_zip', return_value='file1.zip'):
             self.OSW_format = OSWFormat(file_path=file_path, storage_client=MagicMock())
-            self.OSW_format.format = MagicMock()
-            self.OSW_format.format.return_value = Mock(status=True, error=None, generated_files='file1.xml')
 
             # Arrange
             received_message = OSWValidationMessage(data=TEST_DATA)
@@ -207,7 +208,8 @@ class TestOSWFomatterService(unittest.TestCase):
     @patch.object(OSWFormat, 'format')
     def test_process_on_demand_format_success(self, mock_format):
         file_path = f'{SAVED_FILE_PATH}/osw.zip'
-        with patch.object(OSWFormat, '__init__', return_value=None):
+        with patch.object(OSWFormat, '__init__', return_value=None), \
+                patch.object(OSWFormat, 'create_zip', return_value='file1.zip') as mock_create_zip:
             mock_init = OSWFormat(file_path=file_path, storage_client=MagicMock())
             mock_init.file_path = file_path
             mock_init.file_relative_path = file_path.split('/')[-1]
@@ -227,6 +229,7 @@ class TestOSWFomatterService(unittest.TestCase):
             self.formatter.process_on_demand_format(request=request)
 
             mock_format.assert_called_once()
+            mock_create_zip.assert_called_once_with(['file1.xml'])
 
     @patch.object(OSWFormat, 'format')
     def test_process_on_demand_format_failure(self, mock_format):
