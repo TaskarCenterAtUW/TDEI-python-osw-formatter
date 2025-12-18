@@ -111,10 +111,10 @@ class OSWFomatterService:
                 formatter_result = ValidationResult()
                 if result and result.status and result.error is None and result.generated_files is not None:
                     # Generated files can be .xml or a bunch of geojson
-                    if isinstance(result.generated_files, list):  # If it's a list
-                        converted_file = formatter.create_zip(result.generated_files)
-                    else:
-                        converted_file = result.generated_files
+                    converted_file = self._prepare_upload_file(
+                        formatter=formatter,
+                        generated_files=result.generated_files,
+                    )
                     upload_path = self.upload_to_azure(
                         file_path=converted_file,
                         project_group_id=received_message.data.tdei_project_group_id,
@@ -211,10 +211,10 @@ class OSWFomatterService:
             # Create remote path
             if result and result.status and result.error is None and result.generated_files is not None:
                 logger.info('Formatting complete')
-                if isinstance(result.generated_files, list):  # If its a list
-                    converted_file = formatter.create_zip(result.generated_files)
-                else:
-                    converted_file = result.generated_files
+                converted_file = self._prepare_upload_file(
+                    formatter=formatter,
+                    generated_files=result.generated_files,
+                )
 
                 target_directory = f'jobs/{request.data.jobId}/{request.data.target}'
                 target_file_remote_path = f'{target_directory}/{os.path.basename(converted_file)}'
@@ -287,6 +287,15 @@ class OSWFomatterService:
         with open(local_url, "rb") as data:
             file.upload(data)
         return file.get_remote_url()
+
+    def _prepare_upload_file(self, formatter: OSWFormat, generated_files):
+        if isinstance(generated_files, list):
+            return formatter.create_zip(generated_files)
+        if isinstance(generated_files, str):
+            _, extension = os.path.splitext(generated_files)
+            if extension.lower() == ".xml":
+                return formatter.create_zip([generated_files])
+        return generated_files
 
     def stop_listening(self):
         self.listening_thread.join(timeout=0)
