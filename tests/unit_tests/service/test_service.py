@@ -227,8 +227,10 @@ class TestOSWFormatterService(unittest.TestCase):
         mock_format_result = MagicMock()
         mock_format_result.status = True
         mock_format_result.error = None
-        mock_format_result.generated_files = 'file1.geojson'
+        mock_format_result.generated_files = 'file1.xml'
         mock_osw_instance.format.return_value = mock_format_result
+
+        mock_osw_instance.create_zip.return_value = 'zipped_file.zip'
 
         self.service.upload_to_azure = MagicMock()
         self.service.upload_to_azure.return_value = 'uploaded_path'
@@ -236,6 +238,7 @@ class TestOSWFormatterService(unittest.TestCase):
         # Act
         self.service.format(received_message)
 
+        mock_osw_instance.create_zip.assert_called_once_with(['file1.xml'])
         self.service.upload_to_azure.assert_called_once()
 
     @patch('src.service.osw_formatter_service.OSWFormat')
@@ -275,6 +278,45 @@ class TestOSWFormatterService(unittest.TestCase):
 
         # Assert
         mock_osw_instance.create_zip.assert_called_once_with(['file1.geojson', 'file2.geojson'])
+        self.service.upload_to_azure_on_demand.assert_called_once()
+
+    @patch('src.service.osw_formatter_service.OSWFormat')
+    def test_process_on_demand_format_with_generated_xml(self, mock_osw_format):
+        # Arrange
+        message_data = {
+            'sourceUrl': 'http://example.com/file.osm',
+            'jobId': '1234',
+            'source': 'source_format',
+            'target': 'target_format'
+        }
+        received_message = OSWOnDemandRequest(
+            messageId='1234',
+            messageType='message_type',
+            data=message_data
+        )
+
+        # Mock OSWFormat instance
+        mock_osw_instance = MagicMock()
+        mock_osw_format.return_value = mock_osw_instance
+
+        # Mock format method return values
+        mock_format_result = MagicMock()
+        mock_format_result.status = True
+        mock_format_result.error = None
+        mock_format_result.generated_files = 'file1.xml'
+        mock_osw_instance.format.return_value = mock_format_result
+
+        # Mock create_zip return value
+        mock_osw_instance.create_zip.return_value = 'zipped_file.zip'
+
+        self.service.upload_to_azure_on_demand = MagicMock()
+        self.service.upload_to_azure_on_demand.return_value = 'uploaded_path'
+
+        # Act
+        self.service.process_on_demand_format(received_message)
+
+        # Assert
+        mock_osw_instance.create_zip.assert_called_once_with(['file1.xml'])
         self.service.upload_to_azure_on_demand.assert_called_once()
 
     @patch('src.service.osw_formatter_service.OSWFormat')
