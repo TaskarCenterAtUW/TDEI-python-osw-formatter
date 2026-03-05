@@ -36,6 +36,7 @@ class OSWFomatterService:
         self.logger = self.core.get_logger()
         self.storage_client = self.core.get_storage_client()
         self.container_name = self._settings.event_bus.container_name
+        self._shutdown_triggered = threading.Event()
         self.listening_thread = threading.Thread(target=self.start_listening)
         self.listening_thread.start()
         self.download_dir = self._settings.get_download_directory()
@@ -81,9 +82,12 @@ class OSWFomatterService:
                 logger.error(f"Error occurred while processing message, {e}")
                 self.send_status(result=ValidationResult(is_valid=False, validation_message=str(e)),
                                  upload_message=message)
+            finally:
+                self._stop_server_and_container()
 
         self.listening_topic.subscribe(
-            subscription=self.subscription_name, callback=process
+            subscription=self.subscription_name, callback=process,
+            max_receivable_messages=self._settings.max_receivable_messages
         )
 
     def format(self, received_message: OSWValidationMessage):
@@ -300,3 +304,27 @@ class OSWFomatterService:
     def stop_listening(self):
         self.listening_thread.join(timeout=0)
         return
+
+    def _stop_server_and_container(self, delay_seconds: float = 0.0):
+        """
+        Attempt to gracefully stop the current process (stopping FastAPI/uvicorn and the Docker container).
+        """
+        logger.info('Gracefully stopping FastAPI/uvicorn and Docker container')
+        if self._shutdown_triggered.is_set():
+            logger.info('Server stop already in progress; skipping duplicate trigger.')
+            return
+        self._shutdown_triggered.set()
+        logger.info('Server stop triggered; scheduling shutdown.')
+        def _terminate():
+            if delay_seconds:
+                time.sleep(delay_seconds)
+            try:
+                logger.info('Sending SIGTERM to stop server/container.')
+                os.kill(os.getpid(), signal.SIGTERM)
+            except Exception as err:
+                logger.warning(f'Error occurred while sending SIGTERM: {err}')
+            finally:
+                logger.info('Forcing process exit to stop server/container.')
+                os._exit(0)
+
+        threading.Thread(target=_terminate, daemon=True).start()
