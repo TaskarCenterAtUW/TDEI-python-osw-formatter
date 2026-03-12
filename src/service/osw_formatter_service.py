@@ -1,6 +1,7 @@
 import gc
 import os
 import time
+import signal
 import logging
 import traceback
 import urllib.parse
@@ -83,7 +84,7 @@ class OSWFomatterService:
                 self.send_status(result=ValidationResult(is_valid=False, validation_message=str(e)),
                                  upload_message=message)
             finally:
-                self._stop_server_and_container()
+                self._stop_server_and_container(delay_seconds=2)
 
         self.listening_topic.subscribe(
             subscription=self.subscription_name, callback=process,
