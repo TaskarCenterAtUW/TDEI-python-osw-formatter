@@ -58,7 +58,7 @@ class OSWFomatterService:
                                 messageId=message.messageId,
                                 data=queue_message['data']
                             )
-                            logger.info(f'Received on demand request: {ondemand_request.data.jobId}')
+                            logger.info(f'Received on demand request: {ondemand_request.data.jobId}, Core: {Core.__version__}')
                             self.process_on_demand_format(request=ondemand_request)
                         except Exception as e:
                             logger.error(f"Error occurred while processing on demand message, {e}")
@@ -83,13 +83,13 @@ class OSWFomatterService:
                 logger.error(f"Error occurred while processing message, {e}")
                 self.send_status(result=ValidationResult(is_valid=False, validation_message=str(e)),
                                  upload_message=message)
-            finally:
-                self._stop_server_and_container(delay_seconds=2)
 
         self.listening_topic.subscribe(
             subscription=self.subscription_name, callback=process,
             max_receivable_messages=self._settings.max_receivable_messages
         )
+        logger.info('Listener finished processing available messages; stopping server/container.')
+        self._stop_server_and_container(delay_seconds=self._settings.shutdown_delay_seconds)
 
     def format(self, received_message: OSWValidationMessage):
         tdei_record_id: str = ""

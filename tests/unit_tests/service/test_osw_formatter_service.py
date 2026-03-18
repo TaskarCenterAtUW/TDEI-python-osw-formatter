@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass, asdict
-from unittest.mock import Mock, MagicMock, patch, call
+from unittest.mock import ANY, Mock, MagicMock, patch, call
 from src.service.osw_formatter_service import OSWFomatterService
 from src.osw_format import OSWFormat
 from src.models.queue_message_content import ValidationResult
@@ -50,6 +50,9 @@ class TestOSWFomatterService(unittest.TestCase):
             self.formatter.core.return_value = MagicMock()
             self.formatter.core.get_topic = MagicMock()
             self.formatter.core.get_topic.return_value = MagicMock()
+            self.formatter._settings = MagicMock()
+            self.formatter._settings.max_receivable_messages = 1
+            self.formatter._settings.shutdown_delay_seconds = 2.0
             self.formatter.download_dir = DOWNLOAD_PATH
 
     @patch.object(OSWFomatterService, 'start_listening')
@@ -59,6 +62,19 @@ class TestOSWFomatterService(unittest.TestCase):
 
         # Assert
         mock_start_listening.assert_called_once()
+
+    @patch.object(OSWFomatterService, '_stop_server_and_container')
+    def test_start_listening_stops_container_after_subscribe_returns(self, mock_stop_server_and_container):
+        self.formatter.start_listening()
+
+        self.formatter.listening_topic.subscribe.assert_called_once_with(
+            subscription=self.formatter.subscription_name,
+            callback=ANY,
+            max_receivable_messages=self.formatter._settings.max_receivable_messages,
+        )
+        mock_stop_server_and_container.assert_called_once_with(
+            delay_seconds=self.formatter._settings.shutdown_delay_seconds
+        )
 
     @patch('src.service.osw_formatter_service.OSWFormat')
     @patch.object(OSWFormat, 'download_single_file')
