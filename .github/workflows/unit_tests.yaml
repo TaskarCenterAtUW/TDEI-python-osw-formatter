@@ -13,6 +13,7 @@ jobs:
 
     env:
       DATABASE_NAME: test_database
+      AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
 
     steps:
       - name: Checkout code
@@ -20,8 +21,8 @@ jobs:
 
       - name: Updating and installing GDAL
         run: |
-          sudo apt update 
-          sudo apt install gdal-bin libgdal-dev python3-gdal
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin libgdal-dev python3-gdal
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -31,8 +32,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install GDAL==3.4.1
-          pip install -r requirements.txt
+          GDAL_VERSION=$(gdal-config --version)
+          python -m pip install coverage "GDAL==${GDAL_VERSION}"
+          python -m pip install -r requirements.txt
 
       - name: Determine output folder
         id: set_output_folder
@@ -70,11 +72,12 @@ jobs:
           coverage report --fail-under=85
 
       - name: Upload report to Azure
+        if: ${{ env.AZURE_STORAGE_CONNECTION_STRING != '' }}
         uses: LanceMcCarthy/Action-AzureBlobUpload@v2
         with:
           source_folder: 'test_results'
           destination_folder: '${{ env.output_folder }}'
-          connection_string: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          connection_string: ${{ env.AZURE_STORAGE_CONNECTION_STRING }}
           container_name: 'osw-formatter-service'
           clean_destination_folder: false
           delete_if_exists: false
