@@ -8,20 +8,35 @@ from src.models.osw_validation_message import OSWValidationMessage
 
 class TestOSWFormatterService(unittest.TestCase):
 
-    @patch('src.service.osw_formatter_service.Settings')
-    @patch('src.service.osw_formatter_service.Core')
-    def setUp(self, mock_core, mock_settings):
-        # Mock Settings
-        mock_settings.return_value.event_bus.validation_subscription = 'test_subscription'
-        mock_settings.return_value.event_bus.validation_topic = 'test_request_topic'
-        mock_settings.return_value.event_bus.formatter_topic = 'test_response_topic'
-        mock_settings.return_value.max_concurrent_messages = 10
-        mock_settings.return_value.get_download_directory.return_value = '/tmp'
-        mock_settings.return_value.event_bus.container_name = 'test_container'
+    def setUp(self):
+        self.settings_patcher = patch.object(OSWFomatterService, '_settings')
+        mock_settings = self.settings_patcher.start()
+        self.addCleanup(self.settings_patcher.stop)
+        mock_settings.event_bus = MagicMock()
+        mock_settings.event_bus.validation_subscription = 'test_subscription'
+        mock_settings.event_bus.validation_topic = 'test_request_topic'
+        mock_settings.event_bus.formatter_topic = 'test_response_topic'
+        mock_settings.event_bus.container_name = 'test_container'
+        mock_settings.max_concurrent_messages = 10
+        mock_settings.max_receivable_messages = 1
+        mock_settings.shutdown_delay_seconds = 0
+        mock_settings.get_download_directory.return_value = '/tmp'
 
-        # Mock Core
+        self.core_patcher = patch('src.service.osw_formatter_service.Core')
+        mock_core = self.core_patcher.start()
+        self.addCleanup(self.core_patcher.stop)
+        mock_core.__version__ = '0.test'
         mock_core.return_value.get_topic.return_value = MagicMock()
         mock_core.return_value.get_storage_client.return_value = MagicMock()
+
+        self.thread_patcher = patch('src.service.osw_formatter_service.threading.Thread')
+        mock_thread = self.thread_patcher.start()
+        self.addCleanup(self.thread_patcher.stop)
+        mock_thread.return_value = MagicMock()
+
+        self.stop_server_patcher = patch.object(OSWFomatterService, '_stop_server_and_container')
+        self.stop_server_patcher.start()
+        self.addCleanup(self.stop_server_patcher.stop)
 
         # Initialize InclinationService with mocked dependencies
         self.service = OSWFomatterService()
@@ -77,6 +92,7 @@ class TestOSWFormatterService(unittest.TestCase):
         self.service.process_on_demand_format = MagicMock()
 
         # Act
+        self.service.start_listening()
         callback = self.service.listening_topic.subscribe.call_args[1]['callback']
         callback(mock_message)
 
@@ -86,7 +102,8 @@ class TestOSWFormatterService(unittest.TestCase):
             messageId='1234',
             data={'jobId': '5678'}
         )
-        mock_logger.info.assert_called_with('Received on demand request: 5678')
+        logged_message = mock_logger.info.call_args[0][0]
+        self.assertIn('Received on demand request: 5678', logged_message)
         self.service.process_on_demand_format.assert_called_once_with(request=mock_request.return_value)
 
 
@@ -105,6 +122,7 @@ class TestOSWFormatterService(unittest.TestCase):
         self.service.send_on_demand_response = MagicMock()
 
         # Act
+        self.service.start_listening()
         callback = self.service.listening_topic.subscribe.call_args[1]['callback']
         callback(mock_message)
 
