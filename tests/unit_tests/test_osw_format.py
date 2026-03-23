@@ -208,6 +208,8 @@ class TestOSWFormatDownload(unittest.TestCase):
 
 
 class TesOSWFormatCleanUp(unittest.TestCase):
+    def setUp(self):
+        os.makedirs(DOWNLOAD_FILE_PATH, exist_ok=True)
 
     def test_clean_up_file_exists(self):
         filename = 'file1.txt'

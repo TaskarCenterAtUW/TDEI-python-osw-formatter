@@ -1,6 +1,7 @@
 import gc
 import os
 import time
+import signal
 import logging
 import traceback
 import urllib.parse
@@ -36,6 +37,7 @@ class OSWFomatterService:
         self.logger = self.core.get_logger()
         self.storage_client = self.core.get_storage_client()
         self.container_name = self._settings.event_bus.container_name
+        self._shutdown_triggered = threading.Event()
         self.listening_thread = threading.Thread(target=self.start_listening)
         self.listening_thread.start()
         self.download_dir = self._settings.get_download_directory()
@@ -56,7 +58,7 @@ class OSWFomatterService:
                                 messageId=message.messageId,
                                 data=queue_message['data']
                             )
-                            logger.info(f'Received on demand request: {ondemand_request.data.jobId}')
+                            logger.info(f'Received on demand request: {ondemand_request.data.jobId}, Core: {Core.__version__}')
                             self.process_on_demand_format(request=ondemand_request)
                         except Exception as e:
                             logger.error(f"Error occurred while processing on demand message, {e}")
@@ -83,8 +85,11 @@ class OSWFomatterService:
                                  upload_message=message)
 
         self.listening_topic.subscribe(
-            subscription=self.subscription_name, callback=process
+            subscription=self.subscription_name, callback=process,
+            max_receivable_messages=self._settings.max_receivable_messages
         )
+        logger.info('Listener finished processing available messages; stopping server/container.')
+        self._stop_server_and_container(delay_seconds=self._settings.shutdown_delay_seconds)
 
     def format(self, received_message: OSWValidationMessage):
         tdei_record_id: str = ""
@@ -300,3 +305,27 @@ class OSWFomatterService:
     def stop_listening(self):
         self.listening_thread.join(timeout=0)
         return
+
+    def _stop_server_and_container(self, delay_seconds: float = 0.0):
+        """
+        Attempt to gracefully stop the current process (stopping FastAPI/uvicorn and the Docker container).
+        """
+        logger.info('Gracefully stopping FastAPI/uvicorn and Docker container')
+        if self._shutdown_triggered.is_set():
+            logger.info('Server stop already in progress; skipping duplicate trigger.')
+            return
+        self._shutdown_triggered.set()
+        logger.info('Server stop triggered; scheduling shutdown.')
+        def _terminate():
+            if delay_seconds:
+                time.sleep(delay_seconds)
+            try:
+                logger.info('Sending SIGTERM to stop server/container.')
+                os.kill(os.getpid(), signal.SIGTERM)
+            except Exception as err:
+                logger.warning(f'Error occurred while sending SIGTERM: {err}')
+            finally:
+                logger.info('Forcing process exit to stop server/container.')
+                os._exit(0)
+
+        threading.Thread(target=_terminate, daemon=True).start()
