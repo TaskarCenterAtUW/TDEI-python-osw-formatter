@@ -17,7 +17,13 @@ class EventBusSettings:
 class Settings(BaseSettings):
     app_name: str = 'python-osw-formatter'
     event_bus = EventBusSettings()
-    max_concurrent_messages: int = os.environ.get('MAX_CONCURRENT_MESSAGES', 2)
+    max_concurrent_messages: int = os.environ.get('MAX_CONCURRENT_MESSAGES', 1)
+    # Single-run worker should consume one message and then shut down.
+    max_receivable_messages: int = os.environ.get('MAX_RECEIVABLE_MESSAGES', 1)
+    # Wait for queue message completion/abandon settlement before terminating process.
+    message_settle_wait_seconds: float = os.environ.get('MESSAGE_SETTLE_WAIT_SECONDS', 10.0)
+    # Delay gives queue client time to settle/complete the in-flight message before exit.
+    shutdown_delay_seconds: float = os.environ.get('SHUTDOWN_DELAY_SECONDS', 2.0)
 
     def get_root_directory(self) -> str:
         return os.path.dirname(os.path.abspath(__file__))
