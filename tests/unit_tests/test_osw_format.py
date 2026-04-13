@@ -29,19 +29,30 @@ class TestOSWFormat(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @patch('src.osw_format.Formatter')
     @patch.object(OSWFormat, 'clean_up')
-    def test_format_with_valid_file(self, mock_clean_up):
+    def test_format_with_valid_file(self, mock_clean_up, mock_formatter):
         mock_clean_up.return_value = None
+        mock_formatter.return_value.osw2osm.return_value = MagicMock(status=True, generated_files='test.graph.osm.xml')
         result = self.formatter.format()
         self.assertTrue(result.status)
+        mock_formatter.assert_called_once_with(
+            workdir=SAVED_FILE_PATH,
+            file_path=f'{SAVED_FILE_PATH}/osw.zip',
+            prefix='test',
+        )
+        mock_formatter.return_value.osw2osm.assert_called_once()
 
+    @patch('src.osw_format.Formatter')
     @patch.object(OSWFormat, 'clean_up')
-    async def test_format_with_valid_file_should_generate_xml_file(self, mock_clean_up):
+    def test_format_with_valid_file_should_generate_xml_file(self, mock_clean_up, mock_formatter):
         mock_clean_up.return_value = None
-        result = await self.formatter.format()
+        expected_file = f'{SAVED_FILE_PATH}/c8c76e89f30944d2b2abd2491bd95337.graph.osm.xml'
+        mock_formatter.return_value.osw2osm.return_value = MagicMock(status=True, generated_files=expected_file)
+        result = self.formatter.format()
         self.assertTrue(result.status)
         self.assertTrue(os.path.exists(result.generated_files))
-        self.assertEqual(os.path.basename(result.generated_files), 'test.graph.osm.xml')
+        self.assertEqual(os.path.basename(result.generated_files), 'c8c76e89f30944d2b2abd2491bd95337.graph.osm.xml')
 
     @patch.object(OSWFormat, 'clean_up')
     def test_format_with_invalid_file(self, mock_clean_up):
@@ -89,9 +100,9 @@ class TestOSMFormat(unittest.TestCase):
         pass
 
     @patch.object(OSWFormat, 'clean_up')
-    async def test_format_with_valid_file(self, mock_clean_up):
+    def test_format_with_valid_file(self, mock_clean_up):
         mock_clean_up.return_value = None
-        result = await self.formatter.format()
+        result = self.formatter.format()
         self.assertTrue(result.status)
 
     @patch('src.osw_format.Formatter')
@@ -122,13 +133,13 @@ class TestOSMFormat(unittest.TestCase):
         self.assertTrue(os.path.exists(files[0]))  # one is enough
 
     @patch.object(OSWFormat, 'clean_up')
-    async def test_format_with_invalid_file(self, mock_clean_up):
+    def test_format_with_invalid_file(self, mock_clean_up):
         file_path = f'{SAVED_FILE_PATH}/test_file.txt'
         self.formatter.file_path = file_path
         self.formatter.file_relative_path = f'{SAVED_FILE_PATH}/test_file.txt'
         mock_clean_up.return_value = None
-        result = await self.formatter.format()
-        self.assertIsNone(result)
+        with self.assertRaises(Exception):
+            self.formatter.format()
 
     def test_download_single_file(self):
         file_path = f'{SAVED_FILE_PATH}/wa.microsoft.osm.pbf'
