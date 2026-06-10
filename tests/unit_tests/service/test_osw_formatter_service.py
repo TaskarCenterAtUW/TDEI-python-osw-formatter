@@ -76,6 +76,19 @@ class TestOSWFomatterService(unittest.TestCase):
             delay_seconds=self.formatter._settings.shutdown_delay_seconds
         )
 
+    @patch.object(OSWFomatterService, '_stop_server_and_container')
+    def test_start_listening_does_not_stop_container_for_unlimited_receivable_messages(self, mock_stop_server_and_container):
+        self.formatter._settings.max_receivable_messages = -1
+
+        self.formatter.start_listening()
+
+        self.formatter.listening_topic.subscribe.assert_called_once_with(
+            subscription=self.formatter.subscription_name,
+            callback=ANY,
+            max_receivable_messages=self.formatter._settings.max_receivable_messages,
+        )
+        mock_stop_server_and_container.assert_not_called()
+
     @patch('src.service.osw_formatter_service.OSWFormat')
     @patch.object(OSWFormat, 'download_single_file')
     @patch.object(OSWFomatterService, 'send_status')
