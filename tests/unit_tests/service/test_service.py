@@ -405,7 +405,7 @@ class TestOSWFormatterService(unittest.TestCase):
 
         # Assert
         mock_service.storage_client.get_container.assert_called_once_with(container_name="mock_container")
-        mock_container.create_file.assert_called_once_with(remote_path)
+        mock_container.create_file.assert_called_once_with(name=remote_path)
         mock_file.upload.assert_called_once()
         mock_open_file.assert_called_once_with(local_url, "rb")
         self.assertEqual(result, "https://example.com/mock_remote_url")

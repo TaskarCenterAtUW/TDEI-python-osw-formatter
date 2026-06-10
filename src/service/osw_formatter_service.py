@@ -29,6 +29,11 @@ class OSWFomatterService:
     _settings = Settings()
 
     def __init__(self):
+        # Keep Service Bus receiver and lock renewal in the parent process while
+        # long-running formatting work runs in a Linux forked child process.
+        os.environ["TOPIC_CALLBACK_EXECUTION_MODE"] = "process"
+        os.environ["TOPIC_CALLBACK_PROCESS_START_METHOD"] = "fork"
+        os.environ["TOPIC_CALLBACK_PROCESS_FALLBACK_MODE"] = "error"
         self.core = Core()
         listening_topic_name = self._settings.event_bus.validation_topic or ""
         self.subscription_name = self._settings.event_bus.validation_subscription or ""
@@ -88,8 +93,9 @@ class OSWFomatterService:
             subscription=self.subscription_name, callback=process,
             max_receivable_messages=self._settings.max_receivable_messages
         )
-        logger.info('Listener finished processing available messages; stopping server/container.')
-        self._stop_server_and_container(delay_seconds=self._settings.shutdown_delay_seconds)
+        if self._settings.max_receivable_messages > 0:
+            logger.info('Listener finished processing available messages; stopping server/container.')
+            self._stop_server_and_container(delay_seconds=self._settings.shutdown_delay_seconds)
 
     def format(self, received_message: OSWValidationMessage):
         tdei_record_id: str = ""
@@ -288,7 +294,7 @@ class OSWFomatterService:
         container = self.storage_client.get_container(
             container_name=self.container_name
         )
-        file = container.create_file(remote_path)
+        file = container.create_file(name=remote_path)
         with open(local_url, "rb") as data:
             file.upload(data)
         return file.get_remote_url()
