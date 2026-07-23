@@ -120,6 +120,7 @@ class OSWFomatterService:
                 )
                 result = formatter.format()
                 formatter_result = ValidationResult()
+                formatter_result.warnings = result.warnings
                 if result and result.status and result.error is None and result.generated_files is not None:
                     # Generated files can be .xml or a bunch of geojson
                     converted_file = self._prepare_upload_file(
@@ -154,6 +155,7 @@ class OSWFomatterService:
             result = ValidationResult()
             result.is_valid = False
             result.validation_message = f'Error occurred while formatting OSW request {e}'
+            result.warnings = ''
             self.send_status(result=result, upload_message=received_message)
             traceback.print_exc()
         finally:
@@ -183,6 +185,7 @@ class OSWFomatterService:
     def send_status(self, result: ValidationResult, upload_message: OSWValidationMessage, upload_url=None):
         upload_message.data.success = result.is_valid
         upload_message.data.message = result.validation_message
+        upload_message.data.warnings = result.warnings
         if upload_url:
             upload_message.data.formatted_url = upload_url
 
@@ -219,6 +222,7 @@ class OSWFomatterService:
             )
             result = formatter.format()
             osw_response = asdict(request.data)
+            osw_response['warnings'] = result.warnings
             # Create remote path
             if result and result.status and result.error is None and result.generated_files is not None:
                 logger.info('Formatting complete')
@@ -261,7 +265,8 @@ class OSWFomatterService:
                         'status': 'failed',
                         'message': str(e),
                         'success': False,
-                        'jobId': request.data.jobId
+                        'jobId': request.data.jobId,
+                        'warnings': ''
                     }
                 )
             )

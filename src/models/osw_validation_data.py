@@ -10,6 +10,7 @@ class OSWValidationData:
         self._formatted_url = data.get('formatted_url', None)
         self._success = data.get('success', False)
         self._message = data.get('message', '')
+        self._warnings = data.get('warnings', '')
 
     @property
     def tdei_project_group_id(self): return self._tdei_project_group_id
@@ -40,6 +41,12 @@ class OSWValidationData:
 
     @message.setter
     def message(self, value): self._message = value
+
+    @property
+    def warnings(self): return self._warnings
+
+    @warnings.setter
+    def warnings(self, value): self._warnings = value or ''
 
     def to_json(self):
         return to_json(self.__dict__)

@@ -33,6 +33,7 @@ class FormatFixture:
     status: bool
     error: Optional[str]
     generated_files: str
+    warnings: str = ''
 
 
 class TestOSWFomatterService(unittest.TestCase):
@@ -97,7 +98,12 @@ class TestOSWFomatterService(unittest.TestCase):
         file_path = f'{SAVED_FILE_PATH}/osw.zip'
         # Mock OSWFormat instance
         mock_osw_instance = MagicMock()
-        mock_osw_instance.format.return_value = Mock(status=True, error=None, generated_files='file1.xml')
+        mock_osw_instance.format.return_value = Mock(
+            status=True,
+            error=None,
+            generated_files='file1.xml',
+            warnings='warning one',
+        )
         mock_osw_instance.create_zip.return_value = 'file1.zip'
         mock_osw_format.return_value = mock_osw_instance
         mock_download_single_file.return_value = f'{DOWNLOAD_PATH}/osw.zip'
@@ -116,6 +122,8 @@ class TestOSWFomatterService(unittest.TestCase):
         # Assert
         mock_send_status.assert_called_once()
         mock_osw_instance.create_zip.assert_called_once_with(['file1.xml'])
+        result = mock_send_status.call_args[1]['result']
+        self.assertEqual(result.warnings, 'warning one')
 
     @patch.object(OSWFomatterService, 'send_status')
     def test_format_failure(self, mock_send_status):
@@ -190,6 +198,7 @@ class TestOSWFomatterService(unittest.TestCase):
         result = ValidationResult()
         result.is_valid = True
         result.validation_message = 'Formatting Successful'
+        result.warnings = 'warning one'
 
         upload_message = OSWValidationMessage(TEST_DATA)
         # Call the send_status method
@@ -198,6 +207,7 @@ class TestOSWFomatterService(unittest.TestCase):
         # Add assertions for the expected behavior
         self.assertEqual(upload_message.data.success, True)
         self.assertEqual(upload_message.data.message, 'Formatting Successful')
+        self.assertEqual(upload_message.data.warnings, 'warning one')
 
     def test_valid_send_status_with_upload_url(self):
         self.formatter.publishing_topic = MagicMock()
@@ -239,7 +249,12 @@ class TestOSWFomatterService(unittest.TestCase):
             mock_init = OSWFormat(file_path=file_path, storage_client=MagicMock())
             mock_init.file_path = file_path
             mock_init.file_relative_path = file_path.split('/')[-1]
-            mock_format.return_value = Mock(status=True, error=None, generated_files='file1.xml')
+            mock_format.return_value = Mock(
+                status=True,
+                error=None,
+                generated_files='file1.xml',
+                warnings='warning one',
+            )
 
             self.formatter.upload_to_azure_on_demand = MagicMock()
             self.formatter.upload_to_azure_on_demand.return_value = 'some_url'
@@ -256,6 +271,8 @@ class TestOSWFomatterService(unittest.TestCase):
 
             mock_format.assert_called_once()
             mock_create_zip.assert_called_once_with(['file1.xml'])
+            response = self.formatter.send_on_demand_response.call_args[1]['response']
+            self.assertEqual(response.data.warnings, 'warning one')
 
     @patch.object(OSWFormat, 'format')
     def test_process_on_demand_format_failure(self, mock_format):

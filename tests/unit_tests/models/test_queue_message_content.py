@@ -29,6 +29,18 @@ class TestValidationResult(unittest.TestCase):
         result.validation_message = 'Validated'
         self.assertTrue(result.is_valid)
         self.assertEqual(result.validation_message, 'Validated')
+        self.assertEqual(result.warnings, '')
+
+    def test_validation_result_keyword_init(self):
+        result = ValidationResult(
+            is_valid=True,
+            validation_message='Validated',
+            warnings='warning one'
+        )
+
+        self.assertTrue(result.is_valid)
+        self.assertEqual(result.validation_message, 'Validated')
+        self.assertEqual(result.warnings, 'warning one')
 
 class TestRequest(unittest.TestCase):
     def test_request_init(self):
