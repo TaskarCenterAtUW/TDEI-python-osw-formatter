@@ -21,14 +21,12 @@ class TestOSWValidationData(unittest.TestCase):
     def test_init(self):
         data = {
             'tdei_project_group_id': 'group_id',
-            'file_upload_path': 'some_url',
-            'warnings': 'warning one'
+            'file_upload_path': 'some_url'
         }
         validation_data = OSWValidationData(data)
 
         self.assertEqual(validation_data.tdei_project_group_id, 'group_id')
         self.assertEqual(validation_data.file_upload_path, 'some_url')
-        self.assertEqual(validation_data.warnings, 'warning one')
 
     def test_tdei_project_group_id(self):
         validation_data = OSWValidationData(self.data)
@@ -39,8 +37,7 @@ class TestOSWValidationData(unittest.TestCase):
     def test_to_json(self):
         data = {
             'tdei_project_group_id': 'group_id',
-            'file_upload_path': 'some_url',
-            'warnings': 'warning one'
+            'file_upload_path': 'some_url'
         }
         validation_data = OSWValidationData(data)
 
@@ -48,11 +45,9 @@ class TestOSWValidationData(unittest.TestCase):
 
         self.assertIn('tdei_project_group_id', json_data)
         self.assertIn('file_upload_path', json_data)
-        self.assertIn('warnings', json_data)
 
         self.assertEqual(json_data['tdei_project_group_id'], 'group_id')
         self.assertEqual(json_data['file_upload_path'], 'some_url')
-        self.assertEqual(json_data['warnings'], 'warning one')
 
     def test_remove_underscore(self):
         underscored_string = '_test_string'

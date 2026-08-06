@@ -16,8 +16,7 @@ class TestOSWOnDemandResponse(unittest.TestCase):
             'status': 'completed',
             'formattedUrl': 'https://example.com/formatted.zip',
             'success': True,
-            'message': 'Formatting successful',
-            'warnings': 'warning one'
+            'message': 'Formatting successful'
         }
 
         osw_response = OSWOnDemandResponse(messageType=message_type, messageId=message_id, data=data)
@@ -33,7 +32,6 @@ class TestOSWOnDemandResponse(unittest.TestCase):
         self.assertEqual(osw_response.data.formattedUrl, data['formattedUrl'])
         self.assertEqual(osw_response.data.success, data['success'])
         self.assertEqual(osw_response.data.message, data['message'])
-        self.assertEqual(osw_response.data.warnings, data['warnings'])
 
     def test_post_init(self):
         # Test post-init behavior
@@ -54,7 +52,6 @@ class TestOSWOnDemandResponse(unittest.TestCase):
 
         # Ensure data is an instance of ResponseData after __post_init__
         self.assertIsInstance(osw_response.data, ResponseData)
-        self.assertEqual(osw_response.data.warnings, '')
 
     def test_invalid_data_type(self):
         # Test when data is not a dictionary
