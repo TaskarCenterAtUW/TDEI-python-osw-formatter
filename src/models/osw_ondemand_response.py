@@ -14,7 +14,6 @@ class ResponseData:
     formattedUrl: Optional[str] = ''
     success: bool = False
     message: str = ''
-    warnings: str = ''
 
 
 @dataclass

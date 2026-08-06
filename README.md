@@ -131,8 +131,7 @@ Follow the steps to install the python packages required for both building and r
       "source_url": "file_upload_path",
       "formatted_url": "uploaded_url",
       "success": true/false,
-      "message": "message",
-      "warnings": ""
+      "message": "message"
     },
   "publishedDate": "published date"
   }
@@ -164,8 +163,7 @@ Follow the steps to install the python packages required for both building and r
     "target": "osm",
     "formattedUrl": "https://tdeisamplestorage.blob.core.windows.net/osw/2023/11/c552d5d1-0719-4647-b86d-6ae9b25327b7/aff14a0d29ab4acbaef639063462e85b/naresh-som-2.zip",
     "success": true,
-    "message": "",
-    "warnings": ""
+    "message": ""
   }
 }
 ```
