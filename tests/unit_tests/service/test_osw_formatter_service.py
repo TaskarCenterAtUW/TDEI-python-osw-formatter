@@ -2,8 +2,8 @@ import os
 import json
 import unittest
 from pathlib import Path
-from typing import Optional
-from dataclasses import dataclass, asdict
+from types import SimpleNamespace
+from dataclasses import asdict
 from unittest.mock import ANY, Mock, MagicMock, patch, call
 from src.service.osw_formatter_service import OSWFomatterService
 from src.osw_format import OSWFormat
@@ -26,13 +26,6 @@ ONDEMAND_REQUEST_DATA = json.loads(ONDEMAND_REQUEST_FILE.read())
 
 SAVED_FILE_PATH = f'{Path.cwd()}/tests/unit_tests/test_files'
 DOWNLOAD_PATH = f'{Path.cwd()}/downloads'
-
-
-@dataclass
-class FormatFixture:
-    status: bool
-    error: Optional[str]
-    generated_files: str
 
 
 class TestOSWFomatterService(unittest.TestCase):
@@ -97,7 +90,11 @@ class TestOSWFomatterService(unittest.TestCase):
         file_path = f'{SAVED_FILE_PATH}/osw.zip'
         # Mock OSWFormat instance
         mock_osw_instance = MagicMock()
-        mock_osw_instance.format.return_value = Mock(status=True, error=None, generated_files='file1.xml')
+        mock_osw_instance.format.return_value = Mock(
+            status=True,
+            error=None,
+            generated_files='file1.xml',
+        )
         mock_osw_instance.create_zip.return_value = 'file1.zip'
         mock_osw_format.return_value = mock_osw_instance
         mock_download_single_file.return_value = f'{DOWNLOAD_PATH}/osw.zip'
@@ -124,7 +121,11 @@ class TestOSWFomatterService(unittest.TestCase):
 
         # Mock OSWFormat instance
         with patch.object(OSWFormat, '__init__', return_value=None), \
-                patch.object(OSWFormat, 'format', return_value=Mock(status=True, error=None, generated_files='file1.xml')), \
+                patch.object(OSWFormat, 'format', return_value=SimpleNamespace(
+                    status=True,
+                    error=None,
+                    generated_files='file1.xml',
+                )), \
                 patch.object(OSWFormat, 'create_zip', return_value='file1.zip'):
             self.OSW_format = OSWFormat(file_path=file_path, storage_client=MagicMock())
 
@@ -239,7 +240,11 @@ class TestOSWFomatterService(unittest.TestCase):
             mock_init = OSWFormat(file_path=file_path, storage_client=MagicMock())
             mock_init.file_path = file_path
             mock_init.file_relative_path = file_path.split('/')[-1]
-            mock_format.return_value = Mock(status=True, error=None, generated_files='file1.xml')
+            mock_format.return_value = Mock(
+                status=True,
+                error=None,
+                generated_files='file1.xml',
+            )
 
             self.formatter.upload_to_azure_on_demand = MagicMock()
             self.formatter.upload_to_azure_on_demand.return_value = 'some_url'

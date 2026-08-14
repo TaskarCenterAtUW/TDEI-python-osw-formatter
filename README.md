@@ -131,7 +131,7 @@ Follow the steps to install the python packages required for both building and r
       "source_url": "file_upload_path",
       "formatted_url": "uploaded_url",
       "success": true/false,
-      "message": "message" 
+      "message": "message"
     },
   "publishedDate": "published date"
   }
