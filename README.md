@@ -1,5 +1,10 @@
 # TDEI-python-osw-formatter
 
+[![Unit Tests](https://github.com/TaskarCenterAtUW/TDEI-python-osw-formatter/actions/workflows/unit_tests.yaml/badge.svg)](https://github.com/TaskarCenterAtUW/TDEI-python-osw-formatter/actions/workflows/unit_tests.yaml)
+[![Coverage](https://raw.githubusercontent.com/TaskarCenterAtUW/TDEI-python-osw-formatter/badges/coverage.svg)](https://github.com/TaskarCenterAtUW/TDEI-python-osw-formatter/tree/badges)
+[![osm-osw-reformatter](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fraw.githubusercontent.com%2FTaskarCenterAtUW%2FTDEI-python-osw-formatter%2Fdev%2Frequirements.txt&search=%28%3Fm%29%5Eosm-osw-reformatter%3D%3D%28%5B%5E%5Cr%5Cn%5D%2B%29&replace=%241&label=osm-osw-reformatter&color=blue&cacheSeconds=60)](https://pypi.org/project/osm-osw-reformatter/)
+[![python-ms-core](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fraw.githubusercontent.com%2FTaskarCenterAtUW%2FTDEI-python-osw-formatter%2Fdev%2Frequirements.txt&search=%28%3Fm%29%5Epython-ms-core%3D%3D%28%5B%5E%5Cr%5Cn%5D%2B%29&replace=%241&label=python-ms-core&color=blue&cacheSeconds=60)](https://pypi.org/project/python-ms-core/)
+
 ## Introduction 
 Service to Convert the OSW files to OSM files and OSM to OSW files. At the moment, the service does the following:
 - Listens to the topic which is mentioned in `.env` file for any new message (that is triggered when a file is uploaded), example  `UPLOAD_TOPIC=osw-validation` 
@@ -126,7 +131,7 @@ Follow the steps to install the python packages required for both building and r
       "source_url": "file_upload_path",
       "formatted_url": "uploaded_url",
       "success": true/false,
-      "message": "message" 
+      "message": "message"
     },
   "publishedDate": "published date"
   }
@@ -216,4 +221,3 @@ The format is mentioned in [osw-upload.json](./src/assets/osw-upload.json)
 #### Outgoing
 The outgoing messages will be to the `osw-validation` topic.
 The format of the message is at [osw-format.json](./src/assets/osw-format.json)
-

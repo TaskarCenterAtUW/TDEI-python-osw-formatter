@@ -30,6 +30,15 @@ class TestValidationResult(unittest.TestCase):
         self.assertTrue(result.is_valid)
         self.assertEqual(result.validation_message, 'Validated')
 
+    def test_validation_result_keyword_init(self):
+        result = ValidationResult(
+            is_valid=True,
+            validation_message='Validated'
+        )
+
+        self.assertTrue(result.is_valid)
+        self.assertEqual(result.validation_message, 'Validated')
+
 class TestRequest(unittest.TestCase):
     def test_request_init(self):
         data = {
