@@ -102,7 +102,9 @@ class OSWFormat:
     def create_zip(self, files):
         dir_path = os.path.join(self.download_dir, self.prefix)
         zip_filename = os.path.join(dir_path, f'{self.prefix}.zip')
-        with zipfile.ZipFile(zip_filename, 'w') as zip_file:
+        with zipfile.ZipFile(
+            zip_filename, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6
+        ) as zip_file:
             for file in files:
                 # Add each file to the zip file
                 zip_file.write(file, os.path.basename(file))
