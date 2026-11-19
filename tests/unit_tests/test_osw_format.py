@@ -1,7 +1,9 @@
 import os
 import uuid
 import unittest
+import zipfile
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch, MagicMock, Mock
 from src.osw_format import OSWFormat
 
@@ -147,21 +149,32 @@ class TestOSMFormat(unittest.TestCase):
         self.assertEqual(downloaded_file_path, file_path)
 
     def test_create_zip(self):
-        file_paths = []
-        for i in range(3):
-            file_path = os.path.join(self.formatter.download_dir, f'test_file_{i}.txt')
-            with open(file_path, 'w') as f:
-                f.write(f'Test content for file {i}')
-            file_paths.append(file_path)
+        with TemporaryDirectory() as download_dir:
+            self.formatter.download_dir = download_dir
+            self.formatter.prefix = '123'
+            os.makedirs(os.path.join(download_dir, self.formatter.prefix))
+            file_paths = []
+            contents = {}
+            for i in range(3):
+                filename = f'test_file_{i}.txt'
+                content = (f'Test content for file {i}\n' * 1000).encode('utf-8')
+                file_path = os.path.join(download_dir, filename)
+                Path(file_path).write_bytes(content)
+                file_paths.append(file_path)
+                contents[filename] = content
 
-        self.formatter.prefix = '123'
+            zip_filename = self.formatter.create_zip(file_paths)
+            self.assertTrue(os.path.isfile(zip_filename))
 
-        os.makedirs(os.path.join(self.formatter.download_dir, self.formatter.prefix), exist_ok=True)
-        zip_filename = self.formatter.create_zip(file_paths)
-        self.assertTrue(os.path.isfile(zip_filename))
+            with zipfile.ZipFile(zip_filename) as archive:
+                self.assertCountEqual(archive.namelist(), contents)
+                for entry in archive.infolist():
+                    self.assertEqual(entry.compress_type, zipfile.ZIP_DEFLATED)
+                    self.assertLess(entry.compress_size, entry.file_size)
+                    self.assertEqual(archive.read(entry), contents[entry.filename])
 
-        for file_path in file_paths:
-            self.assertFalse(os.path.exists(file_path))
+            for file_path in file_paths:
+                self.assertFalse(os.path.exists(file_path))
 
 
 class TestOSWFormatDownload(unittest.TestCase):
