@@ -56,7 +56,7 @@ class OSWFormat:
                 if ext.lower() == '.zip':
                     formatter_response = formatter.osw2osm()
                 else:
-                    formatter_response = asyncio.run(asyncio.wait_for(async_format(formatter), timeout=60 * 60))
+                    formatter_response = asyncio.run(async_format(formatter))
                 end_time = time.time()
                 logger.info(f' Time taken to format: {end_time - start_time}')
                 return formatter_response
